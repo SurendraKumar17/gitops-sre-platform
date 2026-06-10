@@ -1,0 +1,163 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: book-service-rules
+  namespace: monitoring
+  labels:
+    app: kube-prometheus-stack
+    release: booking
+spec:
+  groups:
+    # ─── RED Metrics ───────────────────────────────────────────────────────────
+    - name: book.red
+      interval: 30s
+      rules:
+        # Request Rate (rps)
+        - record: job:book_request_rate:rate5m
+          expr: |
+            sum(rate(http_server_requests_seconds_count{job="book"}[5m])) by (method, uri, status)
+
+        # Error Rate (non-2xx / 3xx)
+        - record: job:book_error_rate:rate5m
+          expr: |
+            sum(rate(http_server_requests_seconds_count{job="book", status=~"5.."}[5m])) by (uri)
+            /
+            sum(rate(http_server_requests_seconds_count{job="book"}[5m])) by (uri)
+
+        # Duration p50 / p95 / p99 (Spring Boot micrometer histogram)
+        - record: job:book_request_duration_p99:rate5m
+          expr: |
+            histogram_quantile(0.99,
+              sum(rate(http_server_requests_seconds_bucket{job="book"}[5m])) by (le, uri)
+            )
+
+        # High error rate
+        - alert: BookServiceHighErrorRate
+          expr: |
+            (
+              sum(rate(http_server_requests_seconds_count{job="book", status=~"5.."}[5m]))
+              /
+              sum(rate(http_server_requests_seconds_count{job="book"}[5m]))
+            ) > 0.05
+          for: 2m
+          labels:
+            severity: critical
+            service: book
+          annotations:
+            summary: "Book service error rate > 5%"
+            description: "Book service 5xx error rate is {{ $value | humanizePercentage }} over last 5m."
+
+        # High latency p99
+        - alert: BookServiceHighLatency
+          expr: |
+            histogram_quantile(0.99,
+              sum(rate(http_server_requests_seconds_bucket{job="book"}[5m])) by (le)
+            ) > 2
+          for: 5m
+          labels:
+            severity: warning
+            service: book
+          annotations:
+            summary: "Book service p99 latency > 2s"
+            description: "Book service p99 latency is {{ $value }}s."
+
+    # ─── JVM Metrics (Spring Boot Actuator / Micrometer) ───────────────────────
+    - name: book.jvm
+      interval: 60s
+      rules:
+        # Heap usage > 85%
+        - alert: BookJvmHeapHigh
+          expr: |
+            (
+              jvm_memory_used_bytes{job="book", area="heap"}
+              /
+              jvm_memory_max_bytes{job="book", area="heap"}
+            ) > 0.85
+          for: 5m
+          labels:
+            severity: warning
+            service: book
+          annotations:
+            summary: "Book JVM heap usage > 85%"
+            description: "JVM heap is at {{ $value | humanizePercentage }} on pod {{ $labels.pod }}."
+
+        # GC pause time high
+        - alert: BookJvmGcPauseHigh
+          expr: |
+            rate(jvm_gc_pause_seconds_sum{job="book"}[5m])
+            /
+            rate(jvm_gc_pause_seconds_count{job="book"}[5m]) > 0.5
+          for: 5m
+          labels:
+            severity: warning
+            service: book
+          annotations:
+            summary: "Book service GC pause time > 500ms avg"
+            description: "Average GC pause is {{ $value }}s on pod {{ $labels.pod }}."
+
+        # Thread count spike
+        - alert: BookJvmThreadsHigh
+          expr: jvm_threads_live_threads{job="book"} > 200
+          for: 5m
+          labels:
+            severity: warning
+            service: book
+          annotations:
+            summary: "Book service live threads > 200"
+            description: "Thread count is {{ $value }} on pod {{ $labels.pod }}."
+
+    # ─── DB Connection Pool (HikariCP) ─────────────────────────────────────────
+    - name: book.hikari
+      interval: 30s
+      rules:
+        # Pool exhaustion
+        - alert: BookHikariPoolExhausted
+          expr: |
+            hikaricp_connections_pending{job="book"} > 0
+          for: 2m
+          labels:
+            severity: critical
+            service: book
+          annotations:
+            summary: "Book service DB connection pool exhausted"
+            description: "{{ $value }} threads waiting for a DB connection on pod {{ $labels.pod }}."
+
+        # Connection acquisition timeout
+        - alert: BookHikariAcquisitionTimeout
+          expr: |
+            rate(hikaricp_connections_timeout_total{job="book"}[5m]) > 0
+          for: 1m
+          labels:
+            severity: critical
+            service: book
+          annotations:
+            summary: "Book service DB connection acquisition timeouts"
+            description: "Connection timeouts occurring: {{ $value }}/s on pod {{ $labels.pod }}."
+
+    # ─── Pod Health ─────────────────────────────────────────────────────────────
+    - name: book.pods
+      rules:
+        - alert: BookPodNotReady
+          expr: |
+            kube_pod_status_ready{namespace=~"default|production|staging", pod=~".*-book-.*"}
+            == 0
+          for: 5m
+          labels:
+            severity: critical
+            service: book
+          annotations:
+            summary: "Book pod not ready"
+            description: "Pod {{ $labels.pod }} has been not ready for 5m."
+
+        - alert: BookContainerOOMKilled
+          expr: |
+            kube_pod_container_status_last_terminated_reason{
+              reason="OOMKilled",
+              pod=~".*-book-.*"
+            } == 1
+          labels:
+            severity: warning
+            service: book
+          annotations:
+            summary: "Book container OOMKilled"
+            description: "Container {{ $labels.container }} in pod {{ $labels.pod }} was OOMKilled."

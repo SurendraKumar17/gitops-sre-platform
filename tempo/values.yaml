@@ -1,0 +1,115 @@
+## ============================================================
+## Tempo — Enterprise Values
+## Mode: Distributed | Backend: S3 (IRSA)
+## Cluster: dev-eks-cluster | Region: us-east-1
+## ============================================================
+
+tempo:
+  reportingEnabled: false
+
+  storage:
+    trace:
+      backend: s3
+      s3:
+        bucket: dev-eks-cluster-tempo-traces
+        region: us-east-1
+        insecure: false
+
+  global_override:
+    max_trace_idle_period: 30s
+    max_bytes_per_trace: 5000000
+
+serviceAccount:
+  create: true
+  name: tempo
+  annotations:
+    eks.amazonaws.com/role-arn: "arn:aws:iam::635457411372:role/dev-eks-cluster-observability"
+
+## ── Distributor ───────────────────────────────────────────────
+distributor:
+  replicas: 2
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchLabels:
+              app.kubernetes.io/component: distributor
+          topologyKey: kubernetes.io/hostname
+
+## ── Ingester ──────────────────────────────────────────────────
+ingester:
+  replicas: 2
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: gp2
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchLabels:
+              app.kubernetes.io/component: ingester
+          topologyKey: kubernetes.io/hostname
+
+## ── Querier ───────────────────────────────────────────────────
+querier:
+  replicas: 2
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+## ── Query Frontend ────────────────────────────────────────────
+queryFrontend:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+## ── Compactor ─────────────────────────────────────────────────
+compactor:
+  enabled: true
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+## ── OTLP receivers ────────────────────────────────────────────
+traces:
+  otlp:
+    grpc:
+      enabled: true    # OTel Collector → Tempo on :4317
+    http:
+      enabled: true    # OTel Collector → Tempo on :4318
+
+## ── Monitoring ────────────────────────────────────────────────
+metaMonitoring:
+  serviceMonitor:
+    enabled: true
+    labels:
+      release: kube-prometheus-stack

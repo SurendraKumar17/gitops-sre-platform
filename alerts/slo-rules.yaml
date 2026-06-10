@@ -1,0 +1,160 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: booking-slo-rules
+  namespace: monitoring
+  labels:
+    app: kube-prometheus-stack
+    release: booking
+spec:
+  groups:
+    # ─── Availability SLO: 99.9% success rate ──────────────────────────────────
+    # Using multi-window, multi-burn-rate alerting (Google SRE Book ch.5)
+    - name: slo.availability
+      interval: 30s
+      rules:
+        # ── Book service (Spring Boot – http_server_requests_seconds_count) ──
+        - record: slo:book_availability:ratio_rate5m
+          expr: |
+            1 - (
+              sum(rate(http_server_requests_seconds_count{job="book", status=~"5.."}[5m]))
+              /
+              sum(rate(http_server_requests_seconds_count{job="book"}[5m]))
+            )
+
+        - record: slo:book_availability:ratio_rate1h
+          expr: |
+            1 - (
+              sum(rate(http_server_requests_seconds_count{job="book", status=~"5.."}[1h]))
+              /
+              sum(rate(http_server_requests_seconds_count{job="book"}[1h]))
+            )
+
+        - record: slo:book_availability:ratio_rate6h
+          expr: |
+            1 - (
+              sum(rate(http_server_requests_seconds_count{job="book", status=~"5.."}[6h]))
+              /
+              sum(rate(http_server_requests_seconds_count{job="book"}[6h]))
+            )
+
+        # ── Frontend (Node.js – http_request_duration_seconds_count) ──
+        - record: slo:frontend_availability:ratio_rate5m
+          expr: |
+            1 - (
+              sum(rate(http_request_duration_seconds_count{job="frontend", status_code=~"5.."}[5m]))
+              /
+              sum(rate(http_request_duration_seconds_count{job="frontend"}[5m]))
+            )
+
+        - record: slo:frontend_availability:ratio_rate1h
+          expr: |
+            1 - (
+              sum(rate(http_request_duration_seconds_count{job="frontend", status_code=~"5.."}[1h]))
+              /
+              sum(rate(http_request_duration_seconds_count{job="frontend"}[1h]))
+            )
+
+        # ── User service ──
+        - record: slo:user_availability:ratio_rate5m
+          expr: |
+            1 - (
+              sum(rate(http_request_duration_seconds_count{job="user", status_code=~"5.."}[5m]))
+              /
+              sum(rate(http_request_duration_seconds_count{job="user"}[5m]))
+            )
+
+        # ── Search service ──
+        - record: slo:search_availability:ratio_rate5m
+          expr: |
+            1 - (
+              sum(rate(http_request_duration_seconds_count{job="search", status_code=~"5.."}[5m]))
+              /
+              sum(rate(http_request_duration_seconds_count{job="search"}[5m]))
+            )
+
+    # ─── Burn Rate Alerts (Fast + Slow windows) ────────────────────────────────
+    - name: slo.burn_rate
+      rules:
+        # Book – Fast burn (14.4× in 1h = consuming monthly budget in 2 days)
+        - alert: SLOBookAvailabilityFastBurn
+          expr: |
+            (1 - slo:book_availability:ratio_rate5m) > (14.4 * 0.001)
+            and
+            (1 - slo:book_availability:ratio_rate1h) > (14.4 * 0.001)
+          for: 2m
+          labels:
+            severity: critical
+            service: book
+            slo: availability
+          annotations:
+            summary: "Book service burning error budget fast (14.4×)"
+            description: "Book availability SLO is burning at {{ $value | humanizePercentage }} error rate."
+
+        # Book – Slow burn (3× in 6h)
+        - alert: SLOBookAvailabilitySlowBurn
+          expr: |
+            (1 - slo:book_availability:ratio_rate1h) > (3 * 0.001)
+            and
+            (1 - slo:book_availability:ratio_rate6h) > (3 * 0.001)
+          for: 15m
+          labels:
+            severity: warning
+            service: book
+            slo: availability
+          annotations:
+            summary: "Book service burning error budget slowly (3×)"
+            description: "Book availability SLO sustained elevated error rate."
+
+        # Frontend – Fast burn
+        - alert: SLOFrontendAvailabilityFastBurn
+          expr: |
+            (1 - slo:frontend_availability:ratio_rate5m) > (14.4 * 0.001)
+            and
+            (1 - slo:frontend_availability:ratio_rate1h) > (14.4 * 0.001)
+          for: 2m
+          labels:
+            severity: critical
+            service: frontend
+            slo: availability
+          annotations:
+            summary: "Frontend burning error budget fast (14.4×)"
+            description: "Frontend availability SLO error rate: {{ $value | humanizePercentage }}."
+
+    # ─── Latency SLO: 95% of requests < 500ms ─────────────────────────────────
+    - name: slo.latency
+      interval: 30s
+      rules:
+        - record: slo:book_latency_500ms:ratio_rate5m
+          expr: |
+            sum(rate(http_server_requests_seconds_bucket{job="book", le="0.5"}[5m]))
+            /
+            sum(rate(http_server_requests_seconds_count{job="book"}[5m]))
+
+        - record: slo:frontend_latency_500ms:ratio_rate5m
+          expr: |
+            sum(rate(http_request_duration_seconds_bucket{job="frontend", le="0.5"}[5m]))
+            /
+            sum(rate(http_request_duration_seconds_count{job="frontend"}[5m]))
+
+        - alert: SLOBookLatencyBudgetBurn
+          expr: slo:book_latency_500ms:ratio_rate5m < 0.95
+          for: 5m
+          labels:
+            severity: warning
+            service: book
+            slo: latency
+          annotations:
+            summary: "Book service latency SLO breach"
+            description: "Only {{ $value | humanizePercentage }} of requests complete in < 500ms (target: 95%)."
+
+        - alert: SLOFrontendLatencyBudgetBurn
+          expr: slo:frontend_latency_500ms:ratio_rate5m < 0.95
+          for: 5m
+          labels:
+            severity: warning
+            service: frontend
+            slo: latency
+          annotations:
+            summary: "Frontend latency SLO breach"
+            description: "Only {{ $value | humanizePercentage }} of requests complete in < 500ms (target: 95%)."

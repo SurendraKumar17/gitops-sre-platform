@@ -1,0 +1,125 @@
+## ============================================================
+## OpenTelemetry Collector — Helm Values
+## Deployment mode: Deployment (not DaemonSet)
+## Receives from: book, frontend, search, user
+## ============================================================
+
+mode: deployment
+
+replicaCount: 2
+
+image:
+  repository: otel/opentelemetry-collector-contrib
+  tag: "0.102.0"
+
+## ── Config from ConfigMap ────────────────────────────────────
+# The collector-config.yaml ConfigMap is applied separately
+# via the observability ArgoCD app — reference it here
+extraVolumes:
+  - name: collector-config
+    configMap:
+      name: otel-collector-config
+
+extraVolumeMounts:
+  - name: collector-config
+    mountPath: /collector-conf
+    readOnly: true
+
+command:
+  extraArgs:
+    - "--config=/collector-conf/config.yaml"
+
+## ── Service Account (k8sattributes needs pod read access) ────
+serviceAccount:
+  create: true
+  name: otel-collector
+
+clusterRole:
+  create: true
+  rules:
+    - apiGroups: [""]
+      resources: ["pods", "namespaces", "nodes"]
+      verbs: ["get", "list", "watch"]
+    - apiGroups: ["apps"]
+      resources: ["replicasets"]
+      verbs: ["get", "list", "watch"]
+
+## ── Ports ─────────────────────────────────────────────────────
+ports:
+  otlp:
+    enabled: true
+    containerPort: 4317
+    servicePort: 4317
+    protocol: TCP
+  otlp-http:
+    enabled: true
+    containerPort: 4318
+    servicePort: 4318
+    protocol: TCP
+  metrics:
+    enabled: true
+    containerPort: 8888
+    servicePort: 8888
+    protocol: TCP
+
+## ── Resources ─────────────────────────────────────────────────
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+## ── Autoscaling ───────────────────────────────────────────────
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+## ── Affinity ──────────────────────────────────────────────────
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchLabels:
+            app.kubernetes.io/name: opentelemetry-collector
+        topologyKey: kubernetes.io/hostname
+
+## ── Environment — downward API for k8sattributes ─────────────
+extraEnvs:
+  - name: NODE_NAME
+    valueFrom:
+      fieldRef:
+        fieldPath: spec.nodeName
+  - name: POD_NAME
+    valueFrom:
+      fieldRef:
+        fieldPath: metadata.name
+  - name: POD_NAMESPACE
+    valueFrom:
+      fieldRef:
+        fieldPath: metadata.namespace
+
+## ── Service Monitor ───────────────────────────────────────────
+serviceMonitor:
+  enabled: true
+  additionalLabels:
+    release: kube-prometheus-stack
+
+## ── Liveness / Readiness ──────────────────────────────────────
+livenessProbe:
+  httpGet:
+    path: /
+    port: 13133
+  initialDelaySeconds: 10
+  periodSeconds: 10
+
+readinessProbe:
+  httpGet:
+    path: /
+    port: 13133
+  initialDelaySeconds: 5
+  periodSeconds: 5

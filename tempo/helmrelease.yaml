@@ -1,0 +1,125 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: tempo
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: default
+  source:
+    repoURL: https://grafana.github.io/helm-charts
+    chart: tempo-distributed
+    targetRevision: "1.9.10"
+    helm:
+      values: |
+        tempo:
+          reportingEnabled: false
+          storage:
+            trace:
+              backend: s3
+              s3:
+                bucket: dev-eks-cluster-tempo-traces
+                region: us-east-1
+                insecure: false
+          global_override:
+            max_trace_idle_period: 30s
+            max_bytes_per_trace: 5000000
+
+        serviceAccount:
+          create: true
+          name: tempo
+          annotations:
+            eks.amazonaws.com/role-arn: "arn:aws:iam::635457411372:role/dev-eks-cluster-observability"
+
+        distributor:
+          replicas: 1
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+
+        ingester:
+          replicas: 1
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+          persistence:
+            enabled: true
+            size: 10Gi
+            storageClass: gp2-wait
+
+        querier:
+          replicas: 1
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+
+        queryFrontend:
+          replicas: 1
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+
+        compactor:
+          enabled: true
+          replicas: 1
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+
+        traces:
+          otlp:
+            grpc:
+              enabled: true
+            http:
+              enabled: true
+
+        metaMonitoring:
+          serviceMonitor:
+            enabled: true
+            labels:
+              release: kube-prometheus-stack
+  ignoreDifferences:
+    - group: apps
+      kind: StatefulSet
+      name: tempo-ingester
+      jsonPointers:
+        - /spec/volumeClaimTemplates
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: observability
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

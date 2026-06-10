@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: alertmanager-booking-kube-prometheus-stack
+  namespace: monitoring
+  labels:
+    app: kube-prometheus-stack-alertmanager
+type: Opaque
+stringData:
+  alertmanager.yaml: |
+    global:
+      resolve_timeout: 5m
+      # Configure your SMTP / Slack / PagerDuty here
+      # smtp_smarthost: 'smtp.example.com:587'
+      # smtp_from: 'alerts@example.com'
+
+    route:
+      group_by: ['namespace', 'alertname', 'job']
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 12h
+      receiver: 'default'
+      routes:
+        # Critical alerts → immediate notification
+        - matchers:
+            - severity = critical
+          receiver: 'critical'
+          group_wait: 10s
+          repeat_interval: 1h
+
+        # SLO burn rate alerts
+        - matchers:
+            - alertname =~ "SLO.*"
+          receiver: 'slo-alerts'
+          group_wait: 30s
+          repeat_interval: 4h
+
+        # Book service (Java) – separate channel
+        - matchers:
+            - job = "book"
+          receiver: 'book-service'
+
+    receivers:
+      - name: 'default'
+        # webhook_configs:
+        #   - url: 'http://your-webhook/alerts'
+
+      - name: 'critical'
+        # slack_configs:
+        #   - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+        #     channel: '#alerts-critical'
+        #     title: '{{ .GroupLabels.alertname }}'
+        #     text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+
+      - name: 'slo-alerts'
+        # slack_configs:
+        #   - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+        #     channel: '#slo-alerts'
+
+      - name: 'book-service'
+        # slack_configs:
+        #   - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+        #     channel: '#book-service-alerts'
+
+    inhibit_rules:
+      # Silence warning if critical already firing for same service
+      - source_matchers:
+          - severity = critical
+        target_matchers:
+          - severity = warning
+        equal: ['namespace', 'job', 'alertname']

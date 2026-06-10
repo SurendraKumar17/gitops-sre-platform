@@ -1,0 +1,230 @@
+## ============================================================
+## kube-prometheus-stack — Final Values
+## Cluster: dev-eks-cluster | Region: us-east-1
+## IRSA: arn:aws:iam::635457411372:role/dev-eks-cluster-observability
+## ============================================================
+
+nameOverride: ""
+fullnameOverride: ""
+
+global:
+  rbac:
+    create: true
+
+## ── Alertmanager ─────────────────────────────────────────────
+alertmanager:
+  enabled: true
+  alertmanagerSpec:
+    replicas: 2
+    retention: 120h
+    storage:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: gp2-wait
+          accessModes: [ReadWriteOnce]
+          resources:
+            requests:
+              storage: 10Gi
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
+    podAntiAffinity: hard
+
+  config:
+    global:
+      resolve_timeout: 5m
+    route:
+      group_by: ["alertname", "cluster", "service", "namespace"]
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 12h
+      receiver: "null"
+      routes:
+        - matchers:
+            - severity = "critical"
+          receiver: "null"
+        - matchers:
+            - alertname = "Watchdog"
+          receiver: "null"
+    receivers:
+      - name: "null"
+    inhibit_rules:
+      - source_matchers:
+          - severity = "critical"
+        target_matchers:
+          - severity = "warning"
+        equal: ["alertname", "namespace", "service"]
+
+## ── Grafana ───────────────────────────────────────────────────
+grafana:
+  enabled: true
+  replicas: 1
+  adminPassword: "changeme-via-secret"
+
+  persistence:
+    enabled: true
+    storageClassName: gp2-wait
+    size: 10Gi
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      labelValue: "1"
+      searchNamespace: ALL
+    datasources:
+      enabled: true
+      label: grafana_datasource
+
+  additionalDataSources:
+    - name: Loki
+      type: loki
+      url: http://loki-gateway.observability.svc.cluster.local:80
+      access: proxy
+      uid: loki
+      jsonData:
+        maxLines: 5000
+        derivedFields:
+          - datasourceUid: tempo
+            matcherRegex: '"traceId":"([^"]+)"'
+            name: TraceID
+            url: '$${__value.raw}'
+
+    - name: Tempo
+      type: tempo
+      url: http://tempo-query-frontend.observability.svc.cluster.local:3100
+      access: proxy
+      uid: tempo
+      jsonData:
+        tracesToLogs:
+          datasourceUid: loki
+          tags: ["service.name", "pod"]
+          filterByTraceID: true
+        serviceMap:
+          datasourceUid: prometheus
+        nodeGraph:
+          enabled: true
+        lokiSearch:
+          datasourceUid: loki
+
+## ── Prometheus ────────────────────────────────────────────────
+prometheus:
+  enabled: true
+
+  serviceAccount:
+    create: true
+    name: kube-prometheus-stack-prometheus
+    annotations:
+      eks.amazonaws.com/role-arn: "arn:aws:iam::635457411372:role/dev-eks-cluster-observability"
+
+  prometheusSpec:
+    replicas: 2
+    retention: 7d
+    retentionSize: "15GB"
+
+    externalLabels:
+      cluster: dev-eks-cluster
+      region: us-east-1
+
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: gp2-wait
+          accessModes: [ReadWriteOnce]
+          resources:
+            requests:
+              storage: 20Gi
+
+    resources:
+      requests:
+        cpu: 300m
+        memory: 1Gi
+      limits:
+        cpu: 1000m
+        memory: 2Gi
+
+    podAntiAffinity: hard
+
+    serviceMonitorSelectorNilUsesHelmValues: false
+    serviceMonitorSelector: {}
+    serviceMonitorNamespaceSelector: {}
+    podMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelector: {}
+    ruleSelectorNilUsesHelmValues: false
+    ruleSelector: {}
+    ruleNamespaceSelector: {}
+
+    thanos:
+      image: quay.io/thanos/thanos:v0.35.0
+      objectStorageConfig:
+        secret:
+          type: S3
+          config:
+            bucket: dev-eks-cluster-thanos-metrics
+            endpoint: s3.us-east-1.amazonaws.com
+            region: us-east-1
+            insecure: false
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 300m
+          memory: 256Mi
+
+    additionalScrapeConfigs:
+      - job_name: argo-rollouts
+        static_configs:
+          - targets: ["argo-rollouts-metrics.argo-rollouts.svc.cluster.local:8090"]
+
+## ── kube-state-metrics ───────────────────────────────────────
+kube-state-metrics:
+  enabled: true
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+  metricLabelsAllowlist:
+    - pods=[app,version,rollouts-pod-template-hash]
+    - deployments=[app,version]
+
+## ── node-exporter ─────────────────────────────────────────────
+prometheus-node-exporter:
+  enabled: true
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+## ── Prometheus Operator ──────────────────────────────────────
+prometheusOperator:
+  enabled: true
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 256Mi
+  admissionWebhooks:
+    enabled: true
+    patch:
+      enabled: true

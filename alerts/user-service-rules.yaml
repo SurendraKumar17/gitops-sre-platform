@@ -1,0 +1,172 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: user-search-service-rules
+  namespace: monitoring
+  labels:
+    app: kube-prometheus-stack
+    release: booking
+spec:
+  groups:
+    # ─── User Service (Node.js, port 3002) ─────────────────────────────────────
+    - name: user.red
+      interval: 30s
+      rules:
+        - record: job:user_request_rate:rate5m
+          expr: |
+            sum(rate(http_request_duration_seconds_count{job="user"}[5m])) by (method, route, status_code)
+
+        - record: job:user_error_rate:rate5m
+          expr: |
+            sum(rate(http_request_duration_seconds_count{job="user", status_code=~"5.."}[5m]))
+            /
+            sum(rate(http_request_duration_seconds_count{job="user"}[5m]))
+
+        - alert: UserServiceHighErrorRate
+          expr: job:user_error_rate:rate5m > 0.05
+          for: 2m
+          labels:
+            severity: critical
+            service: user
+          annotations:
+            summary: "User service error rate > 5%"
+            description: "User service 5xx error rate is {{ $value | humanizePercentage }}."
+
+        - alert: UserServiceHighLatency
+          expr: |
+            histogram_quantile(0.99,
+              sum(rate(http_request_duration_seconds_bucket{job="user"}[5m])) by (le)
+            ) > 1
+          for: 5m
+          labels:
+            severity: warning
+            service: user
+          annotations:
+            summary: "User service p99 latency > 1s"
+            description: "User service p99 latency is {{ $value }}s."
+
+        - alert: UserServiceDown
+          expr: up{job="user"} == 0
+          for: 1m
+          labels:
+            severity: critical
+            service: user
+          annotations:
+            summary: "User service is down"
+            description: "User service pod {{ $labels.pod }} has been unreachable for 1m."
+
+    # ─── Search Service (Node.js, port 3003) ───────────────────────────────────
+    - name: search.red
+      interval: 30s
+      rules:
+        - record: job:search_request_rate:rate5m
+          expr: |
+            sum(rate(http_request_duration_seconds_count{job="search"}[5m])) by (method, route, status_code)
+
+        - record: job:search_error_rate:rate5m
+          expr: |
+            sum(rate(http_request_duration_seconds_count{job="search", status_code=~"5.."}[5m]))
+            /
+            sum(rate(http_request_duration_seconds_count{job="search"}[5m]))
+
+        - alert: SearchServiceHighErrorRate
+          expr: job:search_error_rate:rate5m > 0.05
+          for: 2m
+          labels:
+            severity: critical
+            service: search
+          annotations:
+            summary: "Search service error rate > 5%"
+            description: "Search service 5xx error rate is {{ $value | humanizePercentage }}."
+
+        # Search is memory-intensive (500Mi request) – alert on high memory
+        - alert: SearchServiceHighMemory
+          expr: |
+            container_memory_working_set_bytes{pod=~".*-search-.*", container="search"}
+            / container_spec_memory_limit_bytes{pod=~".*-search-.*", container="search"}
+            > 0.85
+          for: 5m
+          labels:
+            severity: warning
+            service: search
+          annotations:
+            summary: "Search service memory usage > 85%"
+            description: "Search container is using {{ $value | humanizePercentage }} of its memory limit on {{ $labels.pod }}."
+
+        - alert: SearchServiceHighLatency
+          expr: |
+            histogram_quantile(0.99,
+              sum(rate(http_request_duration_seconds_bucket{job="search"}[5m])) by (le)
+            ) > 2
+          for: 5m
+          labels:
+            severity: warning
+            service: search
+          annotations:
+            summary: "Search service p99 latency > 2s"
+            description: "Search p99 latency is {{ $value }}s – check Elasticsearch/DB query performance."
+
+        - alert: SearchServiceDown
+          expr: up{job="search"} == 0
+          for: 1m
+          labels:
+            severity: critical
+            service: search
+          annotations:
+            summary: "Search service is down"
+            description: "Search service pod {{ $labels.pod }} unreachable for 1m."
+
+    # ─── Frontend Service (Node.js, port 3000) ─────────────────────────────────
+    - name: frontend.red
+      interval: 30s
+      rules:
+        - record: job:frontend_error_rate:rate5m
+          expr: |
+            sum(rate(http_request_duration_seconds_count{job="frontend", status_code=~"5.."}[5m]))
+            /
+            sum(rate(http_request_duration_seconds_count{job="frontend"}[5m]))
+
+        - alert: FrontendHighErrorRate
+          expr: job:frontend_error_rate:rate5m > 0.01
+          for: 2m
+          labels:
+            severity: critical
+            service: frontend
+          annotations:
+            summary: "Frontend error rate > 1%"
+            description: "Frontend 5xx error rate is {{ $value | humanizePercentage }} – customers directly impacted."
+
+        - alert: FrontendDown
+          expr: up{job="frontend"} == 0
+          for: 1m
+          labels:
+            severity: critical
+            service: frontend
+          annotations:
+            summary: "Frontend is down"
+            description: "Frontend pod {{ $labels.pod }} unreachable for 1m."
+
+    # ─── Canary Rollout Monitoring (Argo Rollouts) ─────────────────────────────
+    - name: rollout.canary
+      rules:
+        # Fires if canary error rate exceeds stable by 2× during rollout
+        - alert: CanaryErrorRateHigh
+          expr: |
+            (
+              sum(rate(http_server_requests_seconds_count{job="book", status=~"5..", rollouts_pod_template_hash!=""}[5m]))
+              /
+              sum(rate(http_server_requests_seconds_count{job="book", rollouts_pod_template_hash!=""}[5m]))
+            )
+            >
+            (
+              sum(rate(http_server_requests_seconds_count{job="book", status=~"5.."}[5m]))
+              /
+              sum(rate(http_server_requests_seconds_count{job="book"}[5m]))
+            ) * 2
+          for: 1m
+          labels:
+            severity: critical
+            service: book
+          annotations:
+            summary: "Canary error rate is 2× higher than stable"
+            description: "Canary deployment for book service showing elevated errors – consider rollback."
