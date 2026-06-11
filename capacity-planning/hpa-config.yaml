@@ -18,7 +18,7 @@ spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: book
+    name: booking-app-staging-book
   minReplicas: 2
   maxReplicas: 10
   metrics:
@@ -61,7 +61,7 @@ spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: user
+    name: booking-app-staging-user
   minReplicas: 2
   maxReplicas: 8
   metrics:
@@ -104,7 +104,7 @@ spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: search
+    name: booking-app-staging-search
   minReplicas: 2
   maxReplicas: 8
   metrics:
@@ -147,7 +147,7 @@ spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: frontend
+    name: booking-app-staging-frontend
   minReplicas: 2
   maxReplicas: 8
   metrics:

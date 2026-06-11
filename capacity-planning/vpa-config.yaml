@@ -22,7 +22,7 @@ spec:
   targetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: book
+    name: booking-app-staging-book
   updatePolicy:
     updateMode: "Off"           # "Off" = recommendations only
   resourcePolicy:
@@ -49,7 +49,7 @@ spec:
   targetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: user
+    name: booking-app-staging-user
   updatePolicy:
     updateMode: "Off"
   resourcePolicy:
@@ -76,7 +76,7 @@ spec:
   targetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: search
+    name: booking-app-staging-search
   updatePolicy:
     updateMode: "Off"
   resourcePolicy:
@@ -103,7 +103,7 @@ spec:
   targetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: frontend
+    name: booking-app-staging-frontend
   updatePolicy:
     updateMode: "Off"
   resourcePolicy:
