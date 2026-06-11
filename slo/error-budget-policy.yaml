@@ -1,0 +1,79 @@
+# ============================================================
+# Error Budget Policy — Booking Platform
+# ============================================================
+# This policy defines what actions teams MUST take based on
+# how much error budget has been consumed in a 30-day window.
+#
+# SLO Target: 99.9% availability
+# Monthly error budget: 43.8 minutes of downtime
+# ============================================================
+
+error_budget_policy:
+  slo_target: 99.9%
+  window: 30d
+  monthly_budget_minutes: 43.8
+
+  thresholds:
+
+    # > 50% budget remaining — healthy, business as usual
+    - condition: budget_remaining > 50%
+      actions:
+        - Ship features at normal velocity
+        - No restrictions on deployments
+        - Review SLO dashboard weekly
+
+    # 25–50% budget remaining — caution zone
+    - condition: budget_remaining between 25% and 50%
+      actions:
+        - Review recent error sources in Grafana SLO dashboard
+        - Increase deployment scrutiny (require 2 approvals)
+        - Schedule reliability improvements in next sprint
+        - Alert team lead
+
+    # 10–25% budget remaining — slow down
+    - condition: budget_remaining between 10% and 25%
+      actions:
+        - Freeze non-critical feature deployments
+        - Engineering team focuses on reliability fixes
+        - Daily SLO review in standup
+        - Incident review for all 5xx spikes
+        - Notify engineering manager
+
+    # < 10% budget remaining — stop and fix
+    - condition: budget_remaining < 10%
+      actions:
+        - STOP all feature deployments immediately
+        - Only reliability and bug fix PRs allowed
+        - Incident commander assigned for ongoing issues
+        - Daily executive update
+        - Post-mortem required for any new incidents
+        - Notify VP Engineering
+
+    # Budget exhausted (0% or negative)
+    - condition: budget_remaining <= 0%
+      actions:
+        - Emergency response mode
+        - War room initiated
+        - All hands on reliability
+        - Customer communication drafted
+        - SLO target under review for reset
+
+  burn_rate_response:
+    # Fast burn (14.4x) — page on-call immediately
+    fast_burn:
+      multiplier: 14.4x
+      window: 1h
+      response: Page on-call engineer immediately (PagerDuty critical)
+      sla: Acknowledge within 5 minutes
+
+    # Slow burn (3x) — notify during business hours
+    slow_burn:
+      multiplier: 3x
+      window: 6h
+      response: Slack alert to #slo-alerts channel
+      sla: Acknowledge within 30 minutes
+
+  review_cadence:
+    weekly: Review SLO dashboard every Monday
+    monthly: Full error budget review with engineering team
+    quarterly: SLO target review with product and engineering leads

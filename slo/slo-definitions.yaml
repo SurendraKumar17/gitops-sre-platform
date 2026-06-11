@@ -1,0 +1,224 @@
+# ============================================================
+# SLO Definitions — Booking Platform
+# Cluster: dev-eks-cluster | Region: us-east-1
+# Based on Google SRE Book: Multi-window, Multi-burn-rate
+# ============================================================
+#
+# Services:
+#   book     → Java/Spring Boot  (port: actuator/9090)
+#   user     → Node.js           (port: http/3002)
+#   search   → Node.js           (port: http/3003)
+#   frontend → Node.js           (port: http/3000)
+#
+# SLO Targets:
+#   Availability : 99.9%  → error budget: 43.8 min/month
+#   Latency      : 95% of requests < 500ms
+#   Throughput   : informational only (no budget)
+# ============================================================
+
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: slo-definitions
+  namespace: monitoring
+  labels:
+    app: kube-prometheus-stack
+    release: kube-prometheus-stack
+    role: slo
+spec:
+  groups:
+
+    # ── Availability SLIs ──────────────────────────────────────────────────────
+    - name: slo.availability.book
+      interval: 30s
+      rules:
+        - record: slo:book_availability:ratio_rate5m
+          expr: |
+            1 - (
+              sum(rate(http_server_requests_seconds_count{job="book",status=~"5.."}[5m]))
+              /
+              sum(rate(http_server_requests_seconds_count{job="book"}[5m]))
+            )
+        - record: slo:book_availability:ratio_rate30m
+          expr: |
+            1 - (
+              sum(rate(http_server_requests_seconds_count{job="book",status=~"5.."}[30m]))
+              /
+              sum(rate(http_server_requests_seconds_count{job="book"}[30m]))
+            )
+        - record: slo:book_availability:ratio_rate1h
+          expr: |
+            1 - (
+              sum(rate(http_server_requests_seconds_count{job="book",status=~"5.."}[1h]))
+              /
+              sum(rate(http_server_requests_seconds_count{job="book"}[1h]))
+            )
+        - record: slo:book_availability:ratio_rate6h
+          expr: |
+            1 - (
+              sum(rate(http_server_requests_seconds_count{job="book",status=~"5.."}[6h]))
+              /
+              sum(rate(http_server_requests_seconds_count{job="book"}[6h]))
+            )
+        - record: slo:book_availability:ratio_rate3d
+          expr: |
+            1 - (
+              sum(rate(http_server_requests_seconds_count{job="book",status=~"5.."}[3d]))
+              /
+              sum(rate(http_server_requests_seconds_count{job="book"}[3d]))
+            )
+
+    - name: slo.availability.user
+      interval: 30s
+      rules:
+        - record: slo:user_availability:ratio_rate5m
+          expr: |
+            1 - (
+              sum(rate(http_request_duration_seconds_count{job="user",status_code=~"5.."}[5m]))
+              /
+              sum(rate(http_request_duration_seconds_count{job="user"}[5m]))
+            )
+        - record: slo:user_availability:ratio_rate1h
+          expr: |
+            1 - (
+              sum(rate(http_request_duration_seconds_count{job="user",status_code=~"5.."}[1h]))
+              /
+              sum(rate(http_request_duration_seconds_count{job="user"}[1h]))
+            )
+        - record: slo:user_availability:ratio_rate6h
+          expr: |
+            1 - (
+              sum(rate(http_request_duration_seconds_count{job="user",status_code=~"5.."}[6h]))
+              /
+              sum(rate(http_request_duration_seconds_count{job="user"}[6h]))
+            )
+        - record: slo:user_availability:ratio_rate3d
+          expr: |
+            1 - (
+              sum(rate(http_request_duration_seconds_count{job="user",status_code=~"5.."}[3d]))
+              /
+              sum(rate(http_request_duration_seconds_count{job="user"}[3d]))
+            )
+
+    - name: slo.availability.search
+      interval: 30s
+      rules:
+        - record: slo:search_availability:ratio_rate5m
+          expr: |
+            1 - (
+              sum(rate(http_request_duration_seconds_count{job="search",status_code=~"5.."}[5m]))
+              /
+              sum(rate(http_request_duration_seconds_count{job="search"}[5m]))
+            )
+        - record: slo:search_availability:ratio_rate1h
+          expr: |
+            1 - (
+              sum(rate(http_request_duration_seconds_count{job="search",status_code=~"5.."}[1h]))
+              /
+              sum(rate(http_request_duration_seconds_count{job="search"}[1h]))
+            )
+        - record: slo:search_availability:ratio_rate6h
+          expr: |
+            1 - (
+              sum(rate(http_request_duration_seconds_count{job="search",status_code=~"5.."}[6h]))
+              /
+              sum(rate(http_request_duration_seconds_count{job="search"}[6h]))
+            )
+        - record: slo:search_availability:ratio_rate3d
+          expr: |
+            1 - (
+              sum(rate(http_request_duration_seconds_count{job="search",status_code=~"5.."}[3d]))
+              /
+              sum(rate(http_request_duration_seconds_count{job="search"}[3d]))
+            )
+
+    - name: slo.availability.frontend
+      interval: 30s
+      rules:
+        - record: slo:frontend_availability:ratio_rate5m
+          expr: |
+            1 - (
+              sum(rate(http_request_duration_seconds_count{job="frontend",status_code=~"5.."}[5m]))
+              /
+              sum(rate(http_request_duration_seconds_count{job="frontend"}[5m]))
+            )
+        - record: slo:frontend_availability:ratio_rate1h
+          expr: |
+            1 - (
+              sum(rate(http_request_duration_seconds_count{job="frontend",status_code=~"5.."}[1h]))
+              /
+              sum(rate(http_request_duration_seconds_count{job="frontend"}[1h]))
+            )
+        - record: slo:frontend_availability:ratio_rate6h
+          expr: |
+            1 - (
+              sum(rate(http_request_duration_seconds_count{job="frontend",status_code=~"5.."}[6h]))
+              /
+              sum(rate(http_request_duration_seconds_count{job="frontend"}[6h]))
+            )
+        - record: slo:frontend_availability:ratio_rate3d
+          expr: |
+            1 - (
+              sum(rate(http_request_duration_seconds_count{job="frontend",status_code=~"5.."}[3d]))
+              /
+              sum(rate(http_request_duration_seconds_count{job="frontend"}[3d]))
+            )
+
+    # ── Latency SLIs ───────────────────────────────────────────────────────────
+    - name: slo.latency
+      interval: 30s
+      rules:
+        # book — Spring Boot histogram (http_server_requests_seconds_bucket)
+        - record: slo:book_latency_500ms:ratio_rate5m
+          expr: |
+            sum(rate(http_server_requests_seconds_bucket{job="book",le="0.5"}[5m]))
+            /
+            sum(rate(http_server_requests_seconds_count{job="book"}[5m]))
+        - record: slo:book_latency_500ms:ratio_rate1h
+          expr: |
+            sum(rate(http_server_requests_seconds_bucket{job="book",le="0.5"}[1h]))
+            /
+            sum(rate(http_server_requests_seconds_count{job="book"}[1h]))
+
+        # user
+        - record: slo:user_latency_500ms:ratio_rate5m
+          expr: |
+            sum(rate(http_request_duration_seconds_bucket{job="user",le="0.5"}[5m]))
+            /
+            sum(rate(http_request_duration_seconds_count{job="user"}[5m]))
+
+        # search
+        - record: slo:search_latency_500ms:ratio_rate5m
+          expr: |
+            sum(rate(http_request_duration_seconds_bucket{job="search",le="0.5"}[5m]))
+            /
+            sum(rate(http_request_duration_seconds_count{job="search"}[5m]))
+
+        # frontend
+        - record: slo:frontend_latency_500ms:ratio_rate5m
+          expr: |
+            sum(rate(http_request_duration_seconds_bucket{job="frontend",le="0.5"}[5m]))
+            /
+            sum(rate(http_request_duration_seconds_count{job="frontend"}[5m]))
+
+    # ── Error Budget Remaining (30-day window) ─────────────────────────────────
+    # Formula: (1 - error_rate_30d) / (1 - SLO_target)
+    # 1.0 = full budget, 0.0 = budget exhausted, negative = over budget
+    - name: slo.error_budget
+      interval: 5m
+      rules:
+        - record: slo:book_error_budget_remaining:ratio
+          expr: |
+            (slo:book_availability:ratio_rate3d - 0.999) / (1 - 0.999)
+
+        - record: slo:user_error_budget_remaining:ratio
+          expr: |
+            (slo:user_availability:ratio_rate3d - 0.999) / (1 - 0.999)
+
+        - record: slo:search_error_budget_remaining:ratio
+          expr: |
+            (slo:search_availability:ratio_rate3d - 0.999) / (1 - 0.999)
+
+        - record: slo:frontend_error_budget_remaining:ratio
+          expr: |
+            (slo:frontend_availability:ratio_rate3d - 0.999) / (1 - 0.999)

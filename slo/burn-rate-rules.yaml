@@ -1,0 +1,282 @@
+# ============================================================
+# Burn Rate Alerting Rules — Booking Platform
+# Cluster: dev-eks-cluster | Namespace: monitoring
+# ============================================================
+# Multi-window, multi-burn-rate alerting (Google SRE Book ch.5)
+#
+# SLO Target: 99.9% availability (error budget: 0.1%)
+#
+# Windows:
+#   Fast burn  → 14.4× over 1h + 5m  → pages immediately (critical)
+#   Medium burn→  6×  over 6h + 30m  → pages (warning)
+#   Slow burn  →  3×  over 3d + 6h   → ticket (warning)
+#   72h window →  1×  over 72h       → informational
+# ============================================================
+
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: burn-rate-rules
+  namespace: monitoring
+  labels:
+    app: kube-prometheus-stack
+    release: kube-prometheus-stack
+    role: slo
+spec:
+  groups:
+
+    # ── Book Service ───────────────────────────────────────────
+    - name: slo.burn_rate.book
+      rules:
+        # Fast burn: 14.4× — exhausts monthly budget in ~2 days
+        - alert: SLOBookFastBurn
+          expr: |
+            (1 - slo:book_availability:ratio_rate5m)   > (14.4 * 0.001)
+            and
+            (1 - slo:book_availability:ratio_rate1h)   > (14.4 * 0.001)
+          for: 2m
+          labels:
+            severity: critical
+            service: book
+            slo: availability
+            window: fast
+          annotations:
+            summary: "Book service fast burn rate (14.4×)"
+            description: "Error rate {{ $value | humanizePercentage }} — exhausting monthly budget in ~2 days."
+            runbook_url: "https://github.com/SurendraKumar17/k8s-observability-platform/blob/main/runbooks/slo-breach.md"
+
+        # Medium burn: 6× — exhausts monthly budget in ~5 days
+        - alert: SLOBookMediumBurn
+          expr: |
+            (1 - slo:book_availability:ratio_rate30m)  > (6 * 0.001)
+            and
+            (1 - slo:book_availability:ratio_rate6h)   > (6 * 0.001)
+          for: 15m
+          labels:
+            severity: warning
+            service: book
+            slo: availability
+            window: medium
+          annotations:
+            summary: "Book service medium burn rate (6×)"
+            description: "Error rate {{ $value | humanizePercentage }} — exhausting monthly budget in ~5 days."
+            runbook_url: "https://github.com/SurendraKumar17/k8s-observability-platform/blob/main/runbooks/slo-breach.md"
+
+        # Slow burn: 3× — exhausts monthly budget in ~10 days
+        - alert: SLOBookSlowBurn
+          expr: |
+            (1 - slo:book_availability:ratio_rate1h)   > (3 * 0.001)
+            and
+            (1 - slo:book_availability:ratio_rate6h)   > (3 * 0.001)
+          for: 60m
+          labels:
+            severity: warning
+            service: book
+            slo: availability
+            window: slow
+          annotations:
+            summary: "Book service slow burn rate (3×)"
+            description: "Error rate {{ $value | humanizePercentage }} — exhausting monthly budget in ~10 days."
+            runbook_url: "https://github.com/SurendraKumar17/k8s-observability-platform/blob/main/runbooks/slo-breach.md"
+
+        # Latency burn
+        - alert: SLOBookLatencyBurn
+          expr: slo:book_latency_500ms:ratio_rate5m < 0.95
+          for: 5m
+          labels:
+            severity: warning
+            service: book
+            slo: latency
+          annotations:
+            summary: "Book latency SLO burning"
+            description: "Only {{ $value | humanizePercentage }} of requests complete < 500ms (target: 95%)."
+            runbook_url: "https://github.com/SurendraKumar17/k8s-observability-platform/blob/main/runbooks/slo-breach.md"
+
+    # ── User Service ───────────────────────────────────────────
+    - name: slo.burn_rate.user
+      rules:
+        - alert: SLOUserFastBurn
+          expr: |
+            (1 - slo:user_availability:ratio_rate5m)  > (14.4 * 0.001)
+            and
+            (1 - slo:user_availability:ratio_rate1h)  > (14.4 * 0.001)
+          for: 2m
+          labels:
+            severity: critical
+            service: user
+            slo: availability
+            window: fast
+          annotations:
+            summary: "User service fast burn rate (14.4×)"
+            description: "Error rate {{ $value | humanizePercentage }} — exhausting monthly budget in ~2 days."
+            runbook_url: "https://github.com/SurendraKumar17/k8s-observability-platform/blob/main/runbooks/slo-breach.md"
+
+        - alert: SLOUserMediumBurn
+          expr: |
+            (1 - slo:user_availability:ratio_rate1h)  > (6 * 0.001)
+            and
+            (1 - slo:user_availability:ratio_rate6h)  > (6 * 0.001)
+          for: 15m
+          labels:
+            severity: warning
+            service: user
+            slo: availability
+            window: medium
+          annotations:
+            summary: "User service medium burn rate (6×)"
+            description: "Error rate {{ $value | humanizePercentage }} — exhausting monthly budget in ~5 days."
+            runbook_url: "https://github.com/SurendraKumar17/k8s-observability-platform/blob/main/runbooks/slo-breach.md"
+
+        - alert: SLOUserSlowBurn
+          expr: |
+            (1 - slo:user_availability:ratio_rate1h)  > (3 * 0.001)
+            and
+            (1 - slo:user_availability:ratio_rate6h)  > (3 * 0.001)
+          for: 60m
+          labels:
+            severity: warning
+            service: user
+            slo: availability
+            window: slow
+          annotations:
+            summary: "User service slow burn rate (3×)"
+            description: "Error rate {{ $value | humanizePercentage }} — exhausting monthly budget in ~10 days."
+            runbook_url: "https://github.com/SurendraKumar17/k8s-observability-platform/blob/main/runbooks/slo-breach.md"
+
+        - alert: SLOUserLatencyBurn
+          expr: slo:user_latency_500ms:ratio_rate5m < 0.95
+          for: 5m
+          labels:
+            severity: warning
+            service: user
+            slo: latency
+          annotations:
+            summary: "User latency SLO burning"
+            description: "Only {{ $value | humanizePercentage }} of requests complete < 500ms (target: 95%)."
+            runbook_url: "https://github.com/SurendraKumar17/k8s-observability-platform/blob/main/runbooks/slo-breach.md"
+
+    # ── Search Service ─────────────────────────────────────────
+    - name: slo.burn_rate.search
+      rules:
+        - alert: SLOSearchFastBurn
+          expr: |
+            (1 - slo:search_availability:ratio_rate5m) > (14.4 * 0.001)
+            and
+            (1 - slo:search_availability:ratio_rate1h) > (14.4 * 0.001)
+          for: 2m
+          labels:
+            severity: critical
+            service: search
+            slo: availability
+            window: fast
+          annotations:
+            summary: "Search service fast burn rate (14.4×)"
+            description: "Error rate {{ $value | humanizePercentage }} — exhausting monthly budget in ~2 days."
+            runbook_url: "https://github.com/SurendraKumar17/k8s-observability-platform/blob/main/runbooks/slo-breach.md"
+
+        - alert: SLOSearchMediumBurn
+          expr: |
+            (1 - slo:search_availability:ratio_rate1h) > (6 * 0.001)
+            and
+            (1 - slo:search_availability:ratio_rate6h) > (6 * 0.001)
+          for: 15m
+          labels:
+            severity: warning
+            service: search
+            slo: availability
+            window: medium
+          annotations:
+            summary: "Search service medium burn rate (6×)"
+            description: "Error rate {{ $value | humanizePercentage }} — exhausting monthly budget in ~5 days."
+            runbook_url: "https://github.com/SurendraKumar17/k8s-observability-platform/blob/main/runbooks/slo-breach.md"
+
+        - alert: SLOSearchSlowBurn
+          expr: |
+            (1 - slo:search_availability:ratio_rate1h) > (3 * 0.001)
+            and
+            (1 - slo:search_availability:ratio_rate6h) > (3 * 0.001)
+          for: 60m
+          labels:
+            severity: warning
+            service: search
+            slo: availability
+            window: slow
+          annotations:
+            summary: "Search service slow burn rate (3×)"
+            description: "Error rate {{ $value | humanizePercentage }} — exhausting monthly budget in ~10 days."
+            runbook_url: "https://github.com/SurendraKumar17/k8s-observability-platform/blob/main/runbooks/slo-breach.md"
+
+        - alert: SLOSearchLatencyBurn
+          expr: slo:search_latency_500ms:ratio_rate5m < 0.95
+          for: 5m
+          labels:
+            severity: warning
+            service: search
+            slo: latency
+          annotations:
+            summary: "Search latency SLO burning"
+            description: "Only {{ $value | humanizePercentage }} of requests complete < 500ms (target: 95%)."
+            runbook_url: "https://github.com/SurendraKumar17/k8s-observability-platform/blob/main/runbooks/slo-breach.md"
+
+    # ── Frontend Service ───────────────────────────────────────
+    - name: slo.burn_rate.frontend
+      rules:
+        - alert: SLOFrontendFastBurn
+          expr: |
+            (1 - slo:frontend_availability:ratio_rate5m) > (14.4 * 0.001)
+            and
+            (1 - slo:frontend_availability:ratio_rate1h) > (14.4 * 0.001)
+          for: 2m
+          labels:
+            severity: critical
+            service: frontend
+            slo: availability
+            window: fast
+          annotations:
+            summary: "Frontend fast burn rate (14.4×)"
+            description: "Error rate {{ $value | humanizePercentage }} — exhausting monthly budget in ~2 days."
+            runbook_url: "https://github.com/SurendraKumar17/k8s-observability-platform/blob/main/runbooks/slo-breach.md"
+
+        - alert: SLOFrontendMediumBurn
+          expr: |
+            (1 - slo:frontend_availability:ratio_rate1h) > (6 * 0.001)
+            and
+            (1 - slo:frontend_availability:ratio_rate6h) > (6 * 0.001)
+          for: 15m
+          labels:
+            severity: warning
+            service: frontend
+            slo: availability
+            window: medium
+          annotations:
+            summary: "Frontend medium burn rate (6×)"
+            description: "Error rate {{ $value | humanizePercentage }} — exhausting monthly budget in ~5 days."
+            runbook_url: "https://github.com/SurendraKumar17/k8s-observability-platform/blob/main/runbooks/slo-breach.md"
+
+        - alert: SLOFrontendSlowBurn
+          expr: |
+            (1 - slo:frontend_availability:ratio_rate1h) > (3 * 0.001)
+            and
+            (1 - slo:frontend_availability:ratio_rate6h) > (3 * 0.001)
+          for: 60m
+          labels:
+            severity: warning
+            service: frontend
+            slo: availability
+            window: slow
+          annotations:
+            summary: "Frontend slow burn rate (3×)"
+            description: "Error rate {{ $value | humanizePercentage }} — exhausting monthly budget in ~10 days."
+            runbook_url: "https://github.com/SurendraKumar17/k8s-observability-platform/blob/main/runbooks/slo-breach.md"
+
+        - alert: SLOFrontendLatencyBurn
+          expr: slo:frontend_latency_500ms:ratio_rate5m < 0.95
+          for: 5m
+          labels:
+            severity: warning
+            service: frontend
+            slo: latency
+          annotations:
+            summary: "Frontend latency SLO burning"
+            description: "Only {{ $value | humanizePercentage }} of requests complete < 500ms (target: 95%)."
+            runbook_url: "https://github.com/SurendraKumar17/k8s-observability-platform/blob/main/runbooks/slo-breach.md"
