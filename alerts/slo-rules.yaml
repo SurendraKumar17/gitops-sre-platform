@@ -2,7 +2,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:
   name: booking-slo-rules
-  namespace: monitoring
+  namespace: observability
   labels:
     app: kube-prometheus-stack
     release: booking

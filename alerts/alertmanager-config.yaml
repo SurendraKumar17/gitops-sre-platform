@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: alertmanager-booking-kube-prometheus-stack
-  namespace: monitoring
+  namespace: observability
   labels:
     app: kube-prometheus-stack-alertmanager
 type: Opaque
