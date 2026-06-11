@@ -1,6 +1,6 @@
 # ============================================================
 # Burn Rate Alerting Rules — Booking Platform
-# Cluster: dev-eks-cluster | Namespace: monitoring
+# Cluster: dev-eks-cluster | Namespace: observability
 # ============================================================
 # Multi-window, multi-burn-rate alerting (Google SRE Book ch.5)
 #
@@ -17,7 +17,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:
   name: burn-rate-rules
-  namespace: monitoring
+  namespace: observability
   labels:
     app: kube-prometheus-stack
     release: kube-prometheus-stack
