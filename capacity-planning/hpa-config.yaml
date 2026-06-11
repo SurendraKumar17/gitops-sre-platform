@@ -11,7 +11,7 @@ apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: book-hpa
-  namespace: default
+  namespace: booking-staging
   labels:
     app: book
 spec:
@@ -54,7 +54,7 @@ apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: user-hpa
-  namespace: default
+  namespace: booking-staging
   labels:
     app: user
 spec:
@@ -97,7 +97,7 @@ apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: search-hpa
-  namespace: default
+  namespace: booking-staging
   labels:
     app: search
 spec:
@@ -140,7 +140,7 @@ apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: frontend-hpa
-  namespace: default
+  namespace: booking-staging
   labels:
     app: frontend
 spec:

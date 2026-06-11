@@ -15,7 +15,7 @@ apiVersion: autoscaling.k8s.io/v1
 kind: VerticalPodAutoscaler
 metadata:
   name: book-vpa
-  namespace: default
+  namespace: booking-staging
   labels:
     app: book
 spec:
@@ -42,7 +42,7 @@ apiVersion: autoscaling.k8s.io/v1
 kind: VerticalPodAutoscaler
 metadata:
   name: user-vpa
-  namespace: default
+  namespace: booking-staging
   labels:
     app: user
 spec:
@@ -69,7 +69,7 @@ apiVersion: autoscaling.k8s.io/v1
 kind: VerticalPodAutoscaler
 metadata:
   name: search-vpa
-  namespace: default
+  namespace: booking-staging
   labels:
     app: search
 spec:
@@ -96,7 +96,7 @@ apiVersion: autoscaling.k8s.io/v1
 kind: VerticalPodAutoscaler
 metadata:
   name: frontend-vpa
-  namespace: default
+  namespace: booking-staging
   labels:
     app: frontend
 spec:

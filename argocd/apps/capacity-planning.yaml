@@ -16,7 +16,7 @@ spec:
       include: "*.yaml"
   destination:
     server: https://kubernetes.default.svc
-    namespace: booking-dev
+    namespace: booking-staging
   syncPolicy:
     automated:
       prune: true
