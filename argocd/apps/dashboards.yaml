@@ -13,7 +13,7 @@ spec:
     path: dashboards
     directory:
       recurse: true
-      include: "*.json"
+      include: "*.yaml"
   destination:
     server: https://kubernetes.default.svc
     namespace: observability
