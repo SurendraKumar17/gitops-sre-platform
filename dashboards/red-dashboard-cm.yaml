@@ -38,10 +38,10 @@ data:
           "type": "timeseries",
           "gridPos": { "x": 0, "y": 0, "w": 24, "h": 8 },
           "targets": [
-            { "expr": "sum(rate(http_server_requests_seconds_count{job=\"book\"}[5m]))", "legendFormat": "book" },
-            { "expr": "sum(rate(http_request_duration_seconds_count{job=\"frontend\"}[5m]))", "legendFormat": "frontend" },
-            { "expr": "sum(rate(http_request_duration_seconds_count{job=\"user\"}[5m]))", "legendFormat": "user" },
-            { "expr": "sum(rate(http_request_duration_seconds_count{job=\"search\"}[5m]))", "legendFormat": "search" }
+            { "expr": "sum(rate(http_server_requests_seconds_count{job=\"booking-app-staging-book\"}[5m]))", "legendFormat": "book" },
+            { "expr": "sum(rate(http_request_duration_seconds_count{job=\"booking-app-staging-frontend\"}[5m]))", "legendFormat": "frontend" },
+            { "expr": "sum(rate(http_request_duration_seconds_count{job=\"booking-app-staging-user\"}[5m]))", "legendFormat": "user" },
+            { "expr": "sum(rate(http_request_duration_seconds_count{job=\"booking-app-staging-search\"}[5m]))", "legendFormat": "search" }
           ],
           "fieldConfig": { "defaults": { "unit": "reqps" } }
         },
@@ -52,7 +52,7 @@ data:
           "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
           "targets": [
             {
-              "expr": "sum(rate(http_server_requests_seconds_count{job=\"book\", status=~\"5..\"}[5m])) by (uri) / sum(rate(http_server_requests_seconds_count{job=\"book\"}[5m])) by (uri)",
+              "expr": "sum(rate(http_server_requests_seconds_count{job=\"booking-app-staging-book\", status=~\"5..\"}[5m])) by (uri) / sum(rate(http_server_requests_seconds_count{job=\"booking-app-staging-book\"}[5m])) by (uri)",
               "legendFormat": "{{ uri }}"
             }
           ],
@@ -67,7 +67,7 @@ data:
           "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
           "targets": [
             {
-              "expr": "sum(rate(http_request_duration_seconds_count{job=~\"frontend|user|search\", status_code=~\"5..\"}[5m])) by (job) / sum(rate(http_request_duration_seconds_count{job=~\"frontend|user|search\"}[5m])) by (job)",
+              "expr": "sum(rate(http_request_duration_seconds_count{job=~\"booking-app-staging-frontend|booking-app-staging-user|booking-app-staging-search\", status_code=~\"5..\"}[5m])) by (job) / sum(rate(http_request_duration_seconds_count{job=~\"booking-app-staging-frontend|booking-app-staging-user|booking-app-staging-search\"}[5m])) by (job)",
               "legendFormat": "{{ job }}"
             }
           ],
@@ -79,9 +79,9 @@ data:
           "type": "timeseries",
           "gridPos": { "x": 0, "y": 16, "w": 12, "h": 8 },
           "targets": [
-            { "expr": "histogram_quantile(0.50, sum(rate(http_server_requests_seconds_bucket{job=\"book\"}[5m])) by (le))", "legendFormat": "p50" },
-            { "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{job=\"book\"}[5m])) by (le))", "legendFormat": "p95" },
-            { "expr": "histogram_quantile(0.99, sum(rate(http_server_requests_seconds_bucket{job=\"book\"}[5m])) by (le))", "legendFormat": "p99" }
+            { "expr": "histogram_quantile(0.50, sum(rate(http_server_requests_seconds_bucket{job=\"booking-app-staging-book\"}[5m])) by (le))", "legendFormat": "p50" },
+            { "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{job=\"booking-app-staging-book\"}[5m])) by (le))", "legendFormat": "p95" },
+            { "expr": "histogram_quantile(0.99, sum(rate(http_server_requests_seconds_bucket{job=\"booking-app-staging-book\"}[5m])) by (le))", "legendFormat": "p99" }
           ],
           "fieldConfig": { "defaults": { "unit": "s" } }
         },
@@ -91,8 +91,8 @@ data:
           "type": "timeseries",
           "gridPos": { "x": 12, "y": 16, "w": 12, "h": 8 },
           "targets": [
-            { "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{job=~\"frontend|user|search\"}[5m])) by (le, job))", "legendFormat": "p99 {{ job }}" },
-            { "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=~\"frontend|user|search\"}[5m])) by (le, job))", "legendFormat": "p95 {{ job }}" }
+            { "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{job=~\"booking-app-staging-frontend|booking-app-staging-user|booking-app-staging-search\"}[5m])) by (le, job))", "legendFormat": "p99 {{ job }}" },
+            { "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=~\"booking-app-staging-frontend|booking-app-staging-user|booking-app-staging-search\"}[5m])) by (le, job))", "legendFormat": "p95 {{ job }}" }
           ],
           "fieldConfig": { "defaults": { "unit": "s" } }
         },
@@ -102,8 +102,8 @@ data:
           "type": "timeseries",
           "gridPos": { "x": 0, "y": 24, "w": 8, "h": 6 },
           "targets": [
-            { "expr": "jvm_memory_used_bytes{job=\"book\", area=\"heap\"}", "legendFormat": "used {{ pod }}" },
-            { "expr": "jvm_memory_max_bytes{job=\"book\", area=\"heap\"}", "legendFormat": "max {{ pod }}" }
+            { "expr": "jvm_memory_used_bytes{job=\"booking-app-staging-book\", area=\"heap\"}", "legendFormat": "used {{ pod }}" },
+            { "expr": "jvm_memory_max_bytes{job=\"booking-app-staging-book\", area=\"heap\"}", "legendFormat": "max {{ pod }}" }
           ],
           "fieldConfig": { "defaults": { "unit": "bytes" } }
         },
@@ -113,9 +113,9 @@ data:
           "type": "timeseries",
           "gridPos": { "x": 8, "y": 24, "w": 8, "h": 6 },
           "targets": [
-            { "expr": "hikaricp_connections_active{job=\"book\"}", "legendFormat": "active {{ pod }}" },
-            { "expr": "hikaricp_connections_idle{job=\"book\"}", "legendFormat": "idle {{ pod }}" },
-            { "expr": "hikaricp_connections_pending{job=\"book\"}", "legendFormat": "pending {{ pod }}" }
+            { "expr": "hikaricp_connections_active{job=\"booking-app-staging-book\"}", "legendFormat": "active {{ pod }}" },
+            { "expr": "hikaricp_connections_idle{job=\"booking-app-staging-book\"}", "legendFormat": "idle {{ pod }}" },
+            { "expr": "hikaricp_connections_pending{job=\"booking-app-staging-book\"}", "legendFormat": "pending {{ pod }}" }
           ]
         },
         {
@@ -124,7 +124,7 @@ data:
           "type": "timeseries",
           "gridPos": { "x": 16, "y": 24, "w": 8, "h": 6 },
           "targets": [
-            { "expr": "rate(jvm_gc_pause_seconds_sum{job=\"book\"}[5m])", "legendFormat": "{{ action }} {{ cause }}" }
+            { "expr": "rate(jvm_gc_pause_seconds_sum{job=\"booking-app-staging-book\"}[5m])", "legendFormat": "{{ action }} {{ cause }}" }
           ],
           "fieldConfig": { "defaults": { "unit": "s" } }
         }
