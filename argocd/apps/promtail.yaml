@@ -1,0 +1,129 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: promtail
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: default
+  source:
+    repoURL: https://grafana.github.io/helm-charts
+    chart: promtail
+    targetRevision: "6.15.5"
+    helm:
+      values: |
+        daemonset:
+          enabled: true
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 128Mi
+        config:
+          logLevel: warn
+          serverPort: 3101
+          clients:
+            - url: http://loki-gateway.observability.svc.cluster.local/loki/api/v1/push
+              tenant_id: "1"
+              backoff_config:
+                min_period: 500ms
+                max_period: 5m
+                max_retries: 10
+          snippets:
+            scrapeConfigs: |
+              - job_name: booking-staging-pods
+                kubernetes_sd_configs:
+                  - role: pod
+                    namespaces:
+                      names:
+                        - booking-staging
+                relabel_configs:
+                  - source_labels: [__meta_kubernetes_pod_phase]
+                    action: keep
+                    regex: Running
+                  - source_labels: [__meta_kubernetes_namespace]
+                    target_label: namespace
+                  - source_labels: [__meta_kubernetes_pod_label_app]
+                    target_label: app
+                  - source_labels: [__meta_kubernetes_pod_name]
+                    target_label: pod
+                  - source_labels: [__meta_kubernetes_pod_container_name]
+                    target_label: container
+                  - source_labels: [__meta_kubernetes_pod_node_name]
+                    target_label: node
+                  - source_labels: [__meta_kubernetes_pod_label_rollouts_pod_template_hash]
+                    target_label: rollouts_pod_template_hash
+                  - source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_pod_container_name]
+                    target_label: __path__
+                    replacement: /var/log/pods/*$1*/$2/*.log
+                pipeline_stages:
+                  - json:
+                      expressions:
+                        level: level
+                        message: message
+                        traceId: trace.id
+                        spanId: span.id
+                        service: service
+                  - labels:
+                      level:
+                      service:
+                  - labeldrop:
+                      - filename
+              - job_name: observability-pods
+                kubernetes_sd_configs:
+                  - role: pod
+                    namespaces:
+                      names:
+                        - observability
+                relabel_configs:
+                  - source_labels: [__meta_kubernetes_pod_phase]
+                    action: keep
+                    regex: Running
+                  - source_labels: [__meta_kubernetes_namespace]
+                    target_label: namespace
+                  - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
+                    target_label: app
+                  - source_labels: [__meta_kubernetes_pod_name]
+                    target_label: pod
+                  - source_labels: [__meta_kubernetes_pod_container_name]
+                    target_label: container
+                  - source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_pod_container_name]
+                    target_label: __path__
+                    replacement: /var/log/pods/*$1*/$2/*.log
+        rbac:
+          create: true
+          pspEnabled: false
+        serviceAccount:
+          create: true
+          name: promtail
+        tolerations:
+          - key: node-role.kubernetes.io/master
+            operator: Exists
+            effect: NoSchedule
+          - key: node-role.kubernetes.io/control-plane
+            operator: Exists
+            effect: NoSchedule
+        serviceMonitor:
+          enabled: true
+          labels:
+            release: kube-prometheus-stack
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: observability
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
