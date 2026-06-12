@@ -5,7 +5,6 @@
 # user   → port "http"    (3002)  path /metrics
 # search → port "http"    (3003)  path /metrics
 # frontend→ port "http"   (3000)  path /metrics
-
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
@@ -13,16 +12,16 @@ metadata:
   name: book-service-monitor
   namespace: observability
   labels:
-    release: kube-prometheus-stack   # must match the Helm release label selector
+    release: kube-prometheus-stack
 spec:
   namespaceSelector:
     matchNames:
-      - default                      # adjust to your app namespace
+      - booking-staging
   selector:
     matchLabels:
       app: book
   endpoints:
-    - port: actuator                 # named port on the book Service
+    - port: actuator
       path: /actuator/prometheus
       interval: 15s
       scrapeTimeout: 10s
@@ -31,7 +30,6 @@ spec:
           targetLabel: pod
         - sourceLabels: [__meta_kubernetes_namespace]
           targetLabel: namespace
-
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
@@ -43,7 +41,7 @@ metadata:
 spec:
   namespaceSelector:
     matchNames:
-      - default
+      - booking-staging
   selector:
     matchLabels:
       app: user
@@ -57,7 +55,6 @@ spec:
           targetLabel: pod
         - sourceLabels: [__meta_kubernetes_namespace]
           targetLabel: namespace
-
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
@@ -69,7 +66,7 @@ metadata:
 spec:
   namespaceSelector:
     matchNames:
-      - default
+      - booking-staging
   selector:
     matchLabels:
       app: search
@@ -83,7 +80,6 @@ spec:
           targetLabel: pod
         - sourceLabels: [__meta_kubernetes_namespace]
           targetLabel: namespace
-
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
@@ -95,7 +91,7 @@ metadata:
 spec:
   namespaceSelector:
     matchNames:
-      - default
+      - booking-staging
   selector:
     matchLabels:
       app: frontend
