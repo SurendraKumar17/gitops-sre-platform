@@ -134,6 +134,7 @@ spec:
             replicas: 1
             retention: 7d
             retentionSize: "15GB"
+            enableRemoteWriteReceiver: true    # ← ADDED
             externalLabels:
               cluster: dev-eks-cluster
               region: us-east-1
