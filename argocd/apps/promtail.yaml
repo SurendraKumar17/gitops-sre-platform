@@ -59,10 +59,10 @@ spec:
                     target_label: node
                   - source_labels: [__meta_kubernetes_pod_label_rollouts_pod_template_hash]
                     target_label: rollouts_pod_template_hash
-                  - source_labels: [__meta_kubernetes_pod_annotation_kubernetes_io_config_hash, __meta_kubernetes_pod_container_name]
+                  - source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_pod_container_name]
                     target_label: __path__
                     separator: /
-                    replacement: /var/log/pods/*$1*/$2/*.log
+                    replacement: /var/log/pods/*$1/$2/*.log
 
         rbac:
           create: true
