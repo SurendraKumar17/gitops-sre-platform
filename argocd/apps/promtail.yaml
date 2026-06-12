@@ -15,8 +15,6 @@ spec:
     targetRevision: "6.15.5"
     helm:
       values: |
-        daemonset:
-          enabled: true
         resources:
           requests:
             cpu: 50m
@@ -24,6 +22,7 @@ spec:
           limits:
             cpu: 200m
             memory: 128Mi
+
         config:
           logLevel: warn
           serverPort: 3101
@@ -35,17 +34,19 @@ spec:
                 max_period: 5m
                 max_retries: 10
           snippets:
+            pipelineStages:
+              - cri: {}
             scrapeConfigs: |
-              - job_name: booking-staging-pods
+              - job_name: kubernetes-pods
                 kubernetes_sd_configs:
                   - role: pod
-                    namespaces:
-                      names:
-                        - booking-staging
                 relabel_configs:
                   - source_labels: [__meta_kubernetes_pod_phase]
                     action: keep
                     regex: Running
+                  - source_labels: [__meta_kubernetes_namespace]
+                    action: keep
+                    regex: (booking-staging|observability)
                   - source_labels: [__meta_kubernetes_namespace]
                     target_label: namespace
                   - source_labels: [__meta_kubernetes_pod_label_app]
@@ -58,49 +59,19 @@ spec:
                     target_label: node
                   - source_labels: [__meta_kubernetes_pod_label_rollouts_pod_template_hash]
                     target_label: rollouts_pod_template_hash
-                  - source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_pod_container_name]
+                  - source_labels: [__meta_kubernetes_pod_annotation_kubernetes_io_config_hash, __meta_kubernetes_pod_container_name]
                     target_label: __path__
+                    separator: /
                     replacement: /var/log/pods/*$1*/$2/*.log
-                pipeline_stages:
-                  - json:
-                      expressions:
-                        level: level
-                        message: message
-                        traceId: trace.id
-                        spanId: span.id
-                        service: service
-                  - labels:
-                      level:
-                      service:
-                  - labeldrop:
-                      - filename
-              - job_name: observability-pods
-                kubernetes_sd_configs:
-                  - role: pod
-                    namespaces:
-                      names:
-                        - observability
-                relabel_configs:
-                  - source_labels: [__meta_kubernetes_pod_phase]
-                    action: keep
-                    regex: Running
-                  - source_labels: [__meta_kubernetes_namespace]
-                    target_label: namespace
-                  - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
-                    target_label: app
-                  - source_labels: [__meta_kubernetes_pod_name]
-                    target_label: pod
-                  - source_labels: [__meta_kubernetes_pod_container_name]
-                    target_label: container
-                  - source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_pod_container_name]
-                    target_label: __path__
-                    replacement: /var/log/pods/*$1*/$2/*.log
+
         rbac:
           create: true
           pspEnabled: false
+
         serviceAccount:
           create: true
           name: promtail
+
         tolerations:
           - key: node-role.kubernetes.io/master
             operator: Exists
@@ -108,10 +79,12 @@ spec:
           - key: node-role.kubernetes.io/control-plane
             operator: Exists
             effect: NoSchedule
+
         serviceMonitor:
           enabled: true
           labels:
             release: kube-prometheus-stack
+
   destination:
     server: https://kubernetes.default.svc
     namespace: observability
