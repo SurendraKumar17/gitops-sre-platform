@@ -7,12 +7,15 @@ metadata:
     - resources-finalizer.argocd.argoproj.io
   annotations:
     argocd.argoproj.io/sync-wave: "0"
+
 spec:
   project: default
+
   source:
     repoURL: https://prometheus-community.github.io/helm-charts
     chart: kube-prometheus-stack
     targetRevision: "58.7.2"
+
     helm:
       skipCrds: true
       values: |
@@ -32,10 +35,12 @@ spec:
               volumeClaimTemplate:
                 spec:
                   storageClassName: gp2-wait
-                  accessModes: [ReadWriteOnce]
+                  accessModes:
+                    - ReadWriteOnce
                   resources:
                     requests:
                       storage: 10Gi
+
             resources:
               requests:
                 cpu: 50m
@@ -43,40 +48,60 @@ spec:
               limits:
                 cpu: 200m
                 memory: 256Mi
+
             podAntiAffinity: hard
+
           config:
             global:
               resolve_timeout: 5m
+
             route:
-              group_by: ["alertname", "cluster", "service", "namespace"]
+              group_by:
+                - alertname
+                - cluster
+                - service
+                - namespace
               group_wait: 30s
               group_interval: 5m
               repeat_interval: 12h
               receiver: "null"
+
               routes:
                 - matchers:
                     - severity = "critical"
                   receiver: "null"
+
                 - matchers:
                     - alertname = "Watchdog"
                   receiver: "null"
+
             receivers:
               - name: "null"
+
             inhibit_rules:
               - source_matchers:
                   - severity = "critical"
                 target_matchers:
                   - severity = "warning"
-                equal: ["alertname", "namespace", "service"]
+                equal:
+                  - alertname
+                  - namespace
+                  - service
 
         grafana:
           enabled: true
           replicas: 1
+
           adminPassword: "changeme-via-secret"
+
           persistence:
             enabled: true
+            type: pvc
             storageClassName: gp2-wait
+            accessModes:
+              - ReadWriteOnce
             size: 10Gi
+
           resources:
             requests:
               cpu: 100m
@@ -84,21 +109,24 @@ spec:
             limits:
               cpu: 500m
               memory: 512Mi
+
           sidecar:
             dashboards:
               enabled: true
               label: grafana_dashboard
               labelValue: "1"
               searchNamespace: ALL
+
             datasources:
               enabled: true
               label: grafana_datasource
+
           additionalDataSources:
             - name: Loki
               type: loki
-              url: http://loki-gateway.observability.svc.cluster.local:80
-              access: proxy
               uid: loki
+              access: proxy
+              url: http://loki-gateway.observability.svc.cluster.local:80
               jsonData:
                 maxLines: 5000
                 derivedFields:
@@ -106,46 +134,58 @@ spec:
                     matcherRegex: '"traceId":"([^"]+)"'
                     name: TraceID
                     url: '$${__value.raw}'
+
             - name: Tempo
               type: tempo
-              url: http://tempo-query-frontend.observability.svc.cluster.local:3100
-              access: proxy
               uid: tempo
+              access: proxy
+              url: http://tempo-query-frontend.observability.svc.cluster.local:3100
               jsonData:
                 tracesToLogs:
                   datasourceUid: loki
-                  tags: ["service.name", "pod"]
+                  tags:
+                    - service.name
+                    - pod
                   filterByTraceID: true
+
                 serviceMap:
                   datasourceUid: prometheus
+
                 nodeGraph:
                   enabled: true
+
                 lokiSearch:
                   datasourceUid: loki
 
         prometheus:
           enabled: true
+
           serviceAccount:
             create: true
             name: kube-prometheus-stack-prometheus
             annotations:
-              eks.amazonaws.com/role-arn: "arn:aws:iam::635457411372:role/dev-eks-cluster-observability"
+              eks.amazonaws.com/role-arn: arn:aws:iam::635457411372:role/dev-eks-cluster-observability
+
           prometheusSpec:
             replicas: 1
             retention: 7d
-            retentionSize: "15GB"
-            enableRemoteWriteReceiver: true    # ← ADDED
+            retentionSize: 15GB
+            enableRemoteWriteReceiver: true
+
             externalLabels:
               cluster: dev-eks-cluster
               region: us-east-1
+
             storageSpec:
               volumeClaimTemplate:
                 spec:
                   storageClassName: gp2-wait
-                  accessModes: [ReadWriteOnce]
+                  accessModes:
+                    - ReadWriteOnce
                   resources:
                     requests:
                       storage: 20Gi
+
             resources:
               requests:
                 cpu: 300m
@@ -153,15 +193,20 @@ spec:
               limits:
                 cpu: 1000m
                 memory: 2Gi
+
             podAntiAffinity: hard
+
             serviceMonitorSelectorNilUsesHelmValues: false
             serviceMonitorSelector: {}
             serviceMonitorNamespaceSelector: {}
+
             podMonitorSelectorNilUsesHelmValues: false
             podMonitorSelector: {}
+
             ruleSelectorNilUsesHelmValues: false
             ruleSelector: {}
             ruleNamespaceSelector: {}
+
             thanos:
               image: quay.io/thanos/thanos:v0.35.0
               objectStorageConfig:
@@ -172,6 +217,7 @@ spec:
                     endpoint: s3.us-east-1.amazonaws.com
                     region: us-east-1
                     insecure: false
+
               resources:
                 requests:
                   cpu: 100m
@@ -179,13 +225,16 @@ spec:
                 limits:
                   cpu: 300m
                   memory: 256Mi
+
             additionalScrapeConfigs:
               - job_name: argo-rollouts
                 static_configs:
-                  - targets: ["argo-rollouts-metrics.argo-rollouts.svc.cluster.local:8090"]
+                  - targets:
+                      - argo-rollouts-metrics.argo-rollouts.svc.cluster.local:8090
 
         kube-state-metrics:
           enabled: true
+
           resources:
             requests:
               cpu: 50m
@@ -193,12 +242,14 @@ spec:
             limits:
               cpu: 200m
               memory: 256Mi
+
           metricLabelsAllowlist:
             - pods=[app,version,rollouts-pod-template-hash]
             - deployments=[app,version]
 
         prometheus-node-exporter:
           enabled: true
+
           resources:
             requests:
               cpu: 50m
@@ -209,6 +260,7 @@ spec:
 
         prometheusOperator:
           enabled: true
+
           resources:
             requests:
               cpu: 100m
@@ -216,6 +268,7 @@ spec:
             limits:
               cpu: 300m
               memory: 256Mi
+
           admissionWebhooks:
             enabled: true
             patch:
@@ -223,32 +276,40 @@ spec:
 
         kubeControllerManager:
           enabled: false
+
         kubeScheduler:
           enabled: false
+
         kubeProxy:
           enabled: false
+
   destination:
     server: https://kubernetes.default.svc
     namespace: observability
+
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
+
     retry:
       limit: 5
       backoff:
         duration: 5s
         factor: 2
         maxDuration: 3m
+
     syncOptions:
       - CreateNamespace=true
       - ServerSideApply=true
       - RespectIgnoreDifferences=true
+
   ignoreDifferences:
     - group: admissionregistration.k8s.io
       kind: MutatingWebhookConfiguration
       jsonPointers:
         - /webhooks/0/failurePolicy
+
     - group: admissionregistration.k8s.io
       kind: ValidatingWebhookConfiguration
       jsonPointers:
