@@ -1,7 +1,16 @@
 ## ============================================================
 ## OTel Collector — collector-config.yaml
-## Receives: OTLP gRPC/HTTP from all 4 services
+## Receives: OTLP gRPC/HTTP from all 6 services
+##           (auth-service, frontend, notification-service,
+##            search-service, payment-service, booking-service)
 ## Exports:  Traces → Tempo | Logs → Loki | Metrics → Prometheus
+##
+## NOTE: this collector is service-agnostic by design - it accepts
+## OTLP data from any pod sending it, with no hardcoded service list
+## anywhere in receivers/processors/pipelines below. Adding a 7th
+## service later needs no changes here at all, only that service's
+## own OTel SDK instrumentation needs to point at this collector's
+## endpoint.
 ## ============================================================
 
 apiVersion: v1
@@ -80,6 +89,10 @@ data:
             action: upsert
 
       # Filter out health/ready/metrics spans (noise)
+      # NOTE: book (Spring Boot Actuator) exposes liveness/readiness on
+      # separate sub-paths, not just /actuator/health - both are hit
+      # every 5-10s by the Rollout's probes, so both need excluding or
+      # they'll dominate trace volume for that service.
       filter/drop_health:
         spans:
           exclude:
@@ -93,6 +106,12 @@ data:
                 value: /metrics
               - key: http.target
                 value: /actuator/health
+              - key: http.target
+                value: /actuator/health/liveness
+              - key: http.target
+                value: /actuator/health/readiness
+              - key: http.target
+                value: /actuator/prometheus
 
     exporters:
       # Traces → Tempo

@@ -10,62 +10,99 @@ stringData:
   alertmanager.yaml: |
     global:
       resolve_timeout: 5m
-      # Configure your SMTP / Slack / PagerDuty here
-      # smtp_smarthost: 'smtp.example.com:587'
-      # smtp_from: 'alerts@example.com'
 
     route:
-      group_by: ['namespace', 'alertname', 'job']
+      receiver: default
+      group_by:
+        - namespace
+        - job
+        - alertname
+
       group_wait: 30s
       group_interval: 5m
       repeat_interval: 12h
-      receiver: 'default'
+
       routes:
-        # Critical alerts → immediate notification
+
+        # Critical alerts
         - matchers:
-            - severity = critical
-          receiver: 'critical'
+            - severity="critical"
+          receiver: critical
           group_wait: 10s
           repeat_interval: 1h
 
-        # SLO burn rate alerts
+        # SLO alerts
         - matchers:
-            - alertname =~ "SLO.*"
-          receiver: 'slo-alerts'
-          group_wait: 30s
+            - alertname=~"SLO.*"
+          receiver: slo-alerts
           repeat_interval: 4h
 
-        # Book service (Java) – separate channel
+        # Frontend
         - matchers:
-            - job = "book"
-          receiver: 'book-service'
+            - job="frontend"
+          receiver: frontend
+
+        # Auth
+        - matchers:
+            - job="auth"
+          receiver: auth
+
+        # Booking
+        - matchers:
+            - job="book"
+          receiver: booking
+
+        # Search
+        - matchers:
+            - job="search"
+          receiver: search
+
+        # Payment
+        - matchers:
+            - job="payment"
+          receiver: payment
+
+        # Notification
+        - matchers:
+            - job="notification"
+          receiver: notification
 
     receivers:
-      - name: 'default'
+
+      - name: default
         # webhook_configs:
-        #   - url: 'http://your-webhook/alerts'
 
-      - name: 'critical'
+      - name: critical
         # slack_configs:
-        #   - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
-        #     channel: '#alerts-critical'
-        #     title: '{{ .GroupLabels.alertname }}'
-        #     text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
 
-      - name: 'slo-alerts'
+      - name: slo-alerts
         # slack_configs:
-        #   - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
-        #     channel: '#slo-alerts'
 
-      - name: 'book-service'
+      - name: frontend
         # slack_configs:
-        #   - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
-        #     channel: '#book-service-alerts'
+
+      - name: auth
+        # slack_configs:
+
+      - name: booking
+        # slack_configs:
+
+      - name: search
+        # slack_configs:
+
+      - name: payment
+        # slack_configs:
+
+      - name: notification
+        # slack_configs:
 
     inhibit_rules:
-      # Silence warning if critical already firing for same service
+
       - source_matchers:
-          - severity = critical
+          - severity="critical"
         target_matchers:
-          - severity = warning
-        equal: ['namespace', 'job', 'alertname']
+          - severity="warning"
+        equal:
+          - namespace
+          - job
+          - alertname

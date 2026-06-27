@@ -1,0 +1,43 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: auth-service-rules
+  namespace: observability
+  labels:
+    app: kube-prometheus-stack
+    release: booking
+spec:
+  groups:
+    - name: auth.alerts
+      interval: 30s
+      rules:
+
+        - alert: AuthHighErrorRate
+          expr: |
+            (
+              sum(rate(http_request_duration_seconds_count{job="auth",status_code=~"5.."}[5m]))
+              /
+              sum(rate(http_request_duration_seconds_count{job="auth"}[5m]))
+            ) > 0.05
+          for: 2m
+          labels:
+            severity: critical
+            service: auth
+
+        - alert: AuthHighLatency
+          expr: |
+            histogram_quantile(
+              0.99,
+              sum(rate(http_request_duration_seconds_bucket{job="auth"}[5m])) by (le)
+            ) > 1
+          for: 5m
+          labels:
+            severity: warning
+            service: auth
+
+        - alert: AuthPodNotReady
+          expr: kube_pod_status_ready{condition="true",pod=~".*-auth-.*"}==0
+          for: 5m
+          labels:
+            severity: critical
+            service: auth

@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: red-dashboard
+  namespace: observability
+  labels:
+    grafana_dashboard: "1"
+data:
+  red-dashboard.json: |
+{{ .Files.Get "dashboards/red/red-dashboard.json" | indent 4 }}

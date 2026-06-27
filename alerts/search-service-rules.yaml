@@ -1,0 +1,42 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: search-service-rules
+  namespace: observability
+  labels:
+    app: kube-prometheus-stack
+    release: booking
+spec:
+  groups:
+    - name: search.alerts
+      rules:
+
+        - alert: SearchHighErrorRate
+          expr: |
+            (
+              sum(rate(http_request_duration_seconds_count{job="search",status_code=~"5.."}[5m]))
+              /
+              sum(rate(http_request_duration_seconds_count{job="search"}[5m]))
+            ) > 0.05
+          for: 2m
+          labels:
+            severity: critical
+            service: search
+
+        - alert: SearchHighLatency
+          expr: |
+            histogram_quantile(
+              0.99,
+              sum(rate(http_request_duration_seconds_bucket{job="search"}[5m])) by (le)
+            ) > 1
+          for: 5m
+          labels:
+            severity: warning
+            service: search
+
+        - alert: SearchPodNotReady
+          expr: kube_pod_status_ready{condition="true",pod=~".*-search-.*"}==0
+          for: 5m
+          labels:
+            severity: critical
+            service: search

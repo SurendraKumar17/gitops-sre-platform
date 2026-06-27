@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: application-dashboard
+  namespace: observability
+  labels:
+    grafana_dashboard: "1"
+data:
+  application-dashboard.json: |
+{{ .Files.Get "dashboards/application/application-dashboard.json" | indent 4 }}

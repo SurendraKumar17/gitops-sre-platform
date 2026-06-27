@@ -80,7 +80,7 @@ write:
       memory: 512Mi
   persistence:
     size: 10Gi
-    storageClass: gp3
+    storageClass: gp2
   affinity:
     podAntiAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
@@ -119,7 +119,7 @@ backend:
       memory: 512Mi
   persistence:
     size: 10Gi
-    storageClass: gp3
+    storageClass: gp2
 
 ## ── Gateway ───────────────────────────────────────────────────
 gateway:

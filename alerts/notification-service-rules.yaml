@@ -1,0 +1,42 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: notification-service-rules
+  namespace: observability
+  labels:
+    app: kube-prometheus-stack
+    release: booking
+spec:
+  groups:
+    - name: notification.alerts
+      rules:
+
+        - alert: NotificationHighErrorRate
+          expr: |
+            (
+              sum(rate(http_request_duration_seconds_count{job="notification",status_code=~"5.."}[5m]))
+              /
+              sum(rate(http_request_duration_seconds_count{job="notification"}[5m]))
+            ) > 0.05
+          for: 2m
+          labels:
+            severity: critical
+            service: notification
+
+        - alert: NotificationHighLatency
+          expr: |
+            histogram_quantile(
+              0.99,
+              sum(rate(http_request_duration_seconds_bucket{job="notification"}[5m])) by (le)
+            ) > 1
+          for: 5m
+          labels:
+            severity: warning
+            service: notification
+
+        - alert: NotificationPodNotReady
+          expr: kube_pod_status_ready{condition="true",pod=~".*-notification-.*"}==0
+          for: 5m
+          labels:
+            severity: critical
+            service: notification

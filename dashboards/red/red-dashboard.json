@@ -12,13 +12,15 @@
         "type": "custom",
         "label": "Service",
         "options": [
-          { "text": "All", "value": "book|frontend|user|search", "selected": true },
+          { "text": "All", "value": "book|frontend|auth|search|payment|notification", "selected": true },
           { "text": "book", "value": "book" },
           { "text": "frontend", "value": "frontend" },
-          { "text": "user", "value": "user" },
-          { "text": "search", "value": "search" }
+          { "text": "auth", "value": "auth" },
+          { "text": "search", "value": "search" },
+          { "text": "payment", "value": "payment" },
+          { "text": "notification", "value": "notification" }
         ],
-        "current": { "value": "book|frontend|user|search" }
+        "current": { "value": "book|frontend|auth|search|payment|notification" }
       }
     ]
   },
@@ -38,12 +40,20 @@
           "legendFormat": "frontend"
         },
         {
-          "expr": "sum(rate(http_request_duration_seconds_count{job=\"user\"}[5m]))",
-          "legendFormat": "user"
+          "expr": "sum(rate(http_request_duration_seconds_count{job=\"auth\"}[5m]))",
+          "legendFormat": "auth"
         },
         {
           "expr": "sum(rate(http_request_duration_seconds_count{job=\"search\"}[5m]))",
           "legendFormat": "search"
+        },
+        {
+          "expr": "sum(rate(http_request_duration_seconds_count{job=\"payment\"}[5m]))",
+          "legendFormat": "payment"
+        },
+        {
+          "expr": "sum(rate(http_request_duration_seconds_count{job=\"notification\"}[5m]))",
+          "legendFormat": "notification"
         }
       ],
       "fieldConfig": { "defaults": { "unit": "reqps" } }
@@ -70,7 +80,7 @@
       "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
       "targets": [
         {
-          "expr": "sum(rate(http_request_duration_seconds_count{job=~\"frontend|user|search\", status_code=~\"5..\"}[5m])) by (job) / sum(rate(http_request_duration_seconds_count{job=~\"frontend|user|search\"}[5m])) by (job)",
+          "expr": "sum(rate(http_request_duration_seconds_count{job=~\"frontend|auth|search|payment|notification\", status_code=~\"5..\"}[5m])) by (job) / sum(rate(http_request_duration_seconds_count{job=~\"frontend|auth|search|payment|notification\"}[5m])) by (job)",
           "legendFormat": "{{ job }}"
         }
       ],
@@ -104,11 +114,11 @@
       "gridPos": { "x": 12, "y": 16, "w": 12, "h": 8 },
       "targets": [
         {
-          "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{job=~\"frontend|user|search\"}[5m])) by (le, job))",
+          "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{job=~\"frontend|auth|search|payment|notification\"}[5m])) by (le, job))",
           "legendFormat": "p99 {{ job }}"
         },
         {
-          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=~\"frontend|user|search\"}[5m])) by (le, job))",
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=~\"frontend|auth|search|payment|notification\"}[5m])) by (le, job))",
           "legendFormat": "p95 {{ job }}"
         }
       ],

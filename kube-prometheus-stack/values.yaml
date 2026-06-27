@@ -1,7 +1,15 @@
 ## ============================================================
-## kube-prometheus-stack — Final Values
+## kube-prometheus-stack — Reference Values
 ## Cluster: dev-eks-cluster | Region: us-east-1
 ## IRSA: arn:aws:iam::635457411372:role/dev-eks-cluster-observability
+##
+## NOTE: this file is a reference copy for readability only. The
+## ArgoCD Application's inline `spec.source.helm.values` is the
+## actual source of truth deployed to the cluster - edit there,
+## then mirror the change here. (This copy was previously out of
+## sync: alertmanager/prometheus replicas were 2 here vs 1 in the
+## live Application, and enableRemoteWriteReceiver was missing
+## here entirely - both corrected below to match the Application.)
 ## ============================================================
 
 nameOverride: ""
@@ -15,7 +23,7 @@ global:
 alertmanager:
   enabled: true
   alertmanagerSpec:
-    replicas: 2
+    replicas: 1
     retention: 120h
     storage:
       volumeClaimTemplate:
@@ -59,10 +67,10 @@ alertmanager:
           - severity = "warning"
         equal: ["alertname", "namespace", "service"]
 
-## ── Grafana ───────────────────────────────────────────────────
 grafana:
   enabled: true
   replicas: 1
+
   adminPassword: "changeme-via-secret"
 
   persistence:
@@ -84,16 +92,26 @@ grafana:
       label: grafana_dashboard
       labelValue: "1"
       searchNamespace: ALL
+
     datasources:
       enabled: true
       label: grafana_datasource
 
   additionalDataSources:
-    - name: Loki
-      type: loki
-      url: http://loki-gateway.observability.svc.cluster.local:80
+
+    - name: Prometheus
+      uid: prometheus
+      type: prometheus
       access: proxy
+      url: http://kube-prometheus-stack-prometheus.observability.svc.cluster.local:9090
+      isDefault: true
+
+    - name: Loki
       uid: loki
+      type: loki
+      access: proxy
+      url: http://loki-gateway.observability.svc.cluster.local
+
       jsonData:
         maxLines: 5000
         derivedFields:
@@ -103,19 +121,25 @@ grafana:
             url: '$${__value.raw}'
 
     - name: Tempo
-      type: tempo
-      url: http://tempo-query-frontend.observability.svc.cluster.local:3100
-      access: proxy
       uid: tempo
+      type: tempo
+      access: proxy
+      url: http://tempo-query-frontend.observability.svc.cluster.local:3100
+
       jsonData:
         tracesToLogs:
           datasourceUid: loki
-          tags: ["service.name", "pod"]
+          tags:
+            - service.name
+            - pod
           filterByTraceID: true
+
         serviceMap:
           datasourceUid: prometheus
+
         nodeGraph:
           enabled: true
+
         lokiSearch:
           datasourceUid: loki
 
@@ -130,9 +154,10 @@ prometheus:
       eks.amazonaws.com/role-arn: "arn:aws:iam::635457411372:role/dev-eks-cluster-observability"
 
   prometheusSpec:
-    replicas: 2
+    replicas: 1
     retention: 7d
     retentionSize: "15GB"
+    enableRemoteWriteReceiver: true
 
     externalLabels:
       cluster: dev-eks-cluster
