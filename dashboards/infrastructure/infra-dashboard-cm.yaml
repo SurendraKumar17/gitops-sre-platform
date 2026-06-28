@@ -1,4 +1,4 @@
-apiVersion: v1
+]633;E;{\x0acat << 'HEADER'\x0aapiVersion: v1\x0akind: ConfigMap\x0ametadata:\x0aname: infra-dashboard\x0anamespace: observability\x0alabels:\x0agrafana_dashboard: "1"\x0adata:\x0ainfra-dashboard.json: |\x0aHEADER\x0ased 's/^/    /' dashboards/infrastructure/infra-dashboard.json\x3b } > dashboards/infrastructure/infra-dashboard-cm.yaml;0716818c-3245-4988-9c88-b5fa7e84fa09]633;CapiVersion: v1
 kind: ConfigMap
 metadata:
   name: infra-dashboard
@@ -7,4 +7,300 @@ metadata:
     grafana_dashboard: "1"
 data:
   infra-dashboard.json: |
-{{ .Files.Get "dashboards/infrastructure/infra-dashboard.json" | indent 4 }}
+    {
+      "title": "Booking Platform – Infrastructure",
+      "uid": "booking-infra",
+      "tags": [
+        "booking",
+        "infrastructure",
+        "kubernetes"
+      ],
+      "schemaVersion": 38,
+      "refresh": "30s",
+      "time": {
+        "from": "now-1h",
+        "to": "now"
+      },
+      "templating": {
+        "list": [
+          {
+            "name": "namespace",
+            "type": "query",
+            "label": "Namespace",
+            "query": "label_values(kube_pod_info, namespace)",
+            "current": {
+              "text": "app-dev",
+              "value": "app-dev"
+            }
+          },
+          {
+            "name": "pod",
+            "type": "query",
+            "label": "Pod",
+            "query": "label_values(kube_pod_info{namespace=\"$namespace\"}, pod)",
+            "multi": true,
+            "includeAll": true
+          }
+        ]
+      },
+      "panels": [
+        {
+          "id": 1,
+          "title": "Pod CPU Usage",
+          "type": "timeseries",
+          "gridPos": {
+            "x": 0,
+            "y": 0,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"$namespace\",pod=~\"$pod\",container!=\"\",container!=\"POD\"}[5m])) by (pod)",
+              "legendFormat": "{{pod}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "cores"
+            }
+          }
+        },
+        {
+          "id": 2,
+          "title": "Pod Memory Usage",
+          "type": "timeseries",
+          "gridPos": {
+            "x": 12,
+            "y": 0,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "expr": "sum(container_memory_working_set_bytes{namespace=\"$namespace\",pod=~\"$pod\",container!=\"\",container!=\"POD\"}) by (pod)",
+              "legendFormat": "{{pod}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "bytes"
+            }
+          }
+        },
+        {
+          "id": 3,
+          "title": "Container Restarts",
+          "type": "stat",
+          "gridPos": {
+            "x": 0,
+            "y": 8,
+            "w": 6,
+            "h": 4
+          },
+          "targets": [
+            {
+              "expr": "sum(kube_pod_container_status_restarts_total{namespace=\"$namespace\"}) by (pod)"
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "title": "Ready Pods Per Service",
+          "type": "stat",
+          "gridPos": {
+            "x": 6,
+            "y": 8,
+            "w": 18,
+            "h": 4
+          },
+          "targets": [
+            {
+              "expr": "sum(kube_pod_status_ready{namespace=\"$namespace\",condition=\"true\",pod=~\".*-frontend-.*\"})",
+              "legendFormat": "frontend"
+            },
+            {
+              "expr": "sum(kube_pod_status_ready{namespace=\"$namespace\",condition=\"true\",pod=~\".*-auth-.*\"})",
+              "legendFormat": "auth"
+            },
+            {
+              "expr": "sum(kube_pod_status_ready{namespace=\"$namespace\",condition=\"true\",pod=~\".*-book-.*\"})",
+              "legendFormat": "booking"
+            },
+            {
+              "expr": "sum(kube_pod_status_ready{namespace=\"$namespace\",condition=\"true\",pod=~\".*-search-.*\"})",
+              "legendFormat": "search"
+            },
+            {
+              "expr": "sum(kube_pod_status_ready{namespace=\"$namespace\",condition=\"true\",pod=~\".*-payment-.*\"})",
+              "legendFormat": "payment"
+            },
+            {
+              "expr": "sum(kube_pod_status_ready{namespace=\"$namespace\",condition=\"true\",pod=~\".*-notification-.*\"})",
+              "legendFormat": "notification"
+            }
+          ]
+        },
+        {
+          "id": 5,
+          "title": "Pod Network Receive",
+          "type": "timeseries",
+          "gridPos": {
+            "x": 0,
+            "y": 12,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "expr": "sum(rate(container_network_receive_bytes_total{namespace=\"$namespace\",pod=~\"$pod\"}[5m])) by (pod)",
+              "legendFormat": "{{pod}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "Bps"
+            }
+          }
+        },
+        {
+          "id": 6,
+          "title": "Pod Network Transmit",
+          "type": "timeseries",
+          "gridPos": {
+            "x": 12,
+            "y": 12,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "expr": "sum(rate(container_network_transmit_bytes_total{namespace=\"$namespace\",pod=~\"$pod\"}[5m])) by (pod)",
+              "legendFormat": "{{pod}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "Bps"
+            }
+          }
+        },
+        {
+          "id": 7,
+          "title": "HPA Current Replicas",
+          "type": "timeseries",
+          "gridPos": {
+            "x": 0,
+            "y": 20,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "expr": "kube_horizontalpodautoscaler_status_current_replicas{namespace=\"$namespace\"}",
+              "legendFormat": "{{horizontalpodautoscaler}}"
+            }
+          ]
+        },
+        {
+          "id": 8,
+          "title": "HPA Max Replicas",
+          "type": "timeseries",
+          "gridPos": {
+            "x": 12,
+            "y": 20,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "expr": "kube_horizontalpodautoscaler_spec_max_replicas{namespace=\"$namespace\"}",
+              "legendFormat": "{{horizontalpodautoscaler}}"
+            }
+          ]
+        },
+        {
+          "id": 9,
+          "title": "Node CPU Usage",
+          "type": "timeseries",
+          "gridPos": {
+            "x": 0,
+            "y": 28,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "expr": "100 - (avg by(instance)(rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+              "legendFormat": "{{instance}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent"
+            }
+          }
+        },
+        {
+          "id": 10,
+          "title": "Node Memory Usage %",
+          "type": "timeseries",
+          "gridPos": {
+            "x": 12,
+            "y": 28,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "expr": "100 * (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes))",
+              "legendFormat": "{{instance}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent"
+            }
+          }
+        },
+        {
+          "id": 11,
+          "title": "Filesystem Usage %",
+          "type": "timeseries",
+          "gridPos": {
+            "x": 0,
+            "y": 36,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "expr": "100 * (1 - node_filesystem_avail_bytes{fstype!=\"tmpfs\"} / node_filesystem_size_bytes{fstype!=\"tmpfs\"})",
+              "legendFormat": "{{instance}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent"
+            }
+          }
+        },
+        {
+          "id": 12,
+          "title": "Node Load Average",
+          "type": "timeseries",
+          "gridPos": {
+            "x": 12,
+            "y": 36,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "expr": "node_load1",
+              "legendFormat": "{{instance}}"
+            }
+          ]
+        }
+      ]
+    }
