@@ -19,6 +19,9 @@ spec:
           auth_enabled: false
           commonConfig:
             replication_factor: 1
+            ring:
+              kvstore:
+                store: memberlist
           storage:
             type: s3
             bucketNames:
@@ -60,24 +63,18 @@ spec:
             max_query_parallelism: 32
           analytics:
             reporting_enabled: false
-
         deploymentMode: SimpleScalable
-
         lokiCanary:
           enabled: false
-
         chunksCache:
           enabled: false
-
         resultsCache:
           enabled: false
-
         serviceAccount:
           create: true
           name: loki
           annotations:
             eks.amazonaws.com/role-arn: "arn:aws:iam::635457411372:role/dev-eks-cluster-observability"
-
         write:
           replicas: 1
           resources:
@@ -90,7 +87,6 @@ spec:
           persistence:
             size: 10Gi
             storageClass: gp2-wait
-
         read:
           replicas: 1
           resources:
@@ -100,7 +96,6 @@ spec:
             limits:
               cpu: 200m
               memory: 256Mi
-
         backend:
           replicas: 1
           resources:
@@ -113,7 +108,6 @@ spec:
           persistence:
             size: 10Gi
             storageClass: gp2-wait
-
         gateway:
           enabled: true
           replicas: 1
@@ -124,7 +118,6 @@ spec:
             limits:
               cpu: 100m
               memory: 64Mi
-
         monitoring:
           serviceMonitor:
             enabled: true
@@ -134,7 +127,6 @@ spec:
             enabled: false
           lokiCanary:
             enabled: false
-
         test:
           enabled: false
   destination:
