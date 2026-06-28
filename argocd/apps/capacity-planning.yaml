@@ -8,7 +8,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/SurendraKumar17/k8s-observability-platform
+    repoURL: https://github.com/SurendraKumar17/gitops-sre-platform
     targetRevision: main
     path: capacity-planning
     directory:

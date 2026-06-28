@@ -1,1 +1,1 @@
-# k8s-observability-platform
+# gitops-sre-platform

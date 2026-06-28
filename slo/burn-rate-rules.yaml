@@ -43,7 +43,7 @@ spec:
           annotations:
             summary: "Book service fast burn rate (14.4×)"
             description: "Error rate {{ $value | humanizePercentage }} — exhausting monthly budget in ~2 days."
-            runbook_url: "https://github.com/SurendraKumar17/k8s-observability-platform/blob/main/runbooks/slo-breach.md"
+            runbook_url: "https://github.com/SurendraKumar17/gitops-sre-platform/blob/main/runbooks/slo-breach.md"
 
         # Medium burn: 6× — exhausts monthly budget in ~5 days
         - alert: SLOBookMediumBurn
@@ -60,7 +60,7 @@ spec:
           annotations:
             summary: "Book service medium burn rate (6×)"
             description: "Error rate {{ $value | humanizePercentage }} — exhausting monthly budget in ~5 days."
-            runbook_url: "https://github.com/SurendraKumar17/k8s-observability-platform/blob/main/runbooks/slo-breach.md"
+            runbook_url: "https://github.com/SurendraKumar17/gitops-sre-platform/blob/main/runbooks/slo-breach.md"
 
         # Slow burn: 3× — exhausts monthly budget in ~10 days
         - alert: SLOBookSlowBurn
@@ -77,7 +77,7 @@ spec:
           annotations:
             summary: "Book service slow burn rate (3×)"
             description: "Error rate {{ $value | humanizePercentage }} — exhausting monthly budget in ~10 days."
-            runbook_url: "https://github.com/SurendraKumar17/k8s-observability-platform/blob/main/runbooks/slo-breach.md"
+            runbook_url: "https://github.com/SurendraKumar17/gitops-sre-platform/blob/main/runbooks/slo-breach.md"
 
         # Latency burn
         - alert: SLOBookLatencyBurn
@@ -90,7 +90,7 @@ spec:
           annotations:
             summary: "Book latency SLO burning"
             description: "Only {{ $value | humanizePercentage }} of requests complete < 500ms (target: 95%)."
-            runbook_url: "https://github.com/SurendraKumar17/k8s-observability-platform/blob/main/runbooks/slo-breach.md"
+            runbook_url: "https://github.com/SurendraKumar17/gitops-sre-platform/blob/main/runbooks/slo-breach.md"
 
     # ── User Service ───────────────────────────────────────────
     - name: slo.burn_rate.user
@@ -109,7 +109,7 @@ spec:
           annotations:
             summary: "User service fast burn rate (14.4×)"
             description: "Error rate {{ $value | humanizePercentage }} — exhausting monthly budget in ~2 days."
-            runbook_url: "https://github.com/SurendraKumar17/k8s-observability-platform/blob/main/runbooks/slo-breach.md"
+            runbook_url: "https://github.com/SurendraKumar17/gitops-sre-platform/blob/main/runbooks/slo-breach.md"
 
         - alert: SLOUserMediumBurn
           expr: |
@@ -125,7 +125,7 @@ spec:
           annotations:
             summary: "User service medium burn rate (6×)"
             description: "Error rate {{ $value | humanizePercentage }} — exhausting monthly budget in ~5 days."
-            runbook_url: "https://github.com/SurendraKumar17/k8s-observability-platform/blob/main/runbooks/slo-breach.md"
+            runbook_url: "https://github.com/SurendraKumar17/gitops-sre-platform/blob/main/runbooks/slo-breach.md"
 
         - alert: SLOUserSlowBurn
           expr: |
@@ -141,7 +141,7 @@ spec:
           annotations:
             summary: "User service slow burn rate (3×)"
             description: "Error rate {{ $value | humanizePercentage }} — exhausting monthly budget in ~10 days."
-            runbook_url: "https://github.com/SurendraKumar17/k8s-observability-platform/blob/main/runbooks/slo-breach.md"
+            runbook_url: "https://github.com/SurendraKumar17/gitops-sre-platform/blob/main/runbooks/slo-breach.md"
 
         - alert: SLOUserLatencyBurn
           expr: slo:user_latency_500ms:ratio_rate5m < 0.95
@@ -153,7 +153,7 @@ spec:
           annotations:
             summary: "User latency SLO burning"
             description: "Only {{ $value | humanizePercentage }} of requests complete < 500ms (target: 95%)."
-            runbook_url: "https://github.com/SurendraKumar17/k8s-observability-platform/blob/main/runbooks/slo-breach.md"
+            runbook_url: "https://github.com/SurendraKumar17/gitops-sre-platform/blob/main/runbooks/slo-breach.md"
 
     # ── Search Service ─────────────────────────────────────────
     - name: slo.burn_rate.search
@@ -172,7 +172,7 @@ spec:
           annotations:
             summary: "Search service fast burn rate (14.4×)"
             description: "Error rate {{ $value | humanizePercentage }} — exhausting monthly budget in ~2 days."
-            runbook_url: "https://github.com/SurendraKumar17/k8s-observability-platform/blob/main/runbooks/slo-breach.md"
+            runbook_url: "https://github.com/SurendraKumar17/gitops-sre-platform/blob/main/runbooks/slo-breach.md"
 
         - alert: SLOSearchMediumBurn
           expr: |
@@ -188,7 +188,7 @@ spec:
           annotations:
             summary: "Search service medium burn rate (6×)"
             description: "Error rate {{ $value | humanizePercentage }} — exhausting monthly budget in ~5 days."
-            runbook_url: "https://github.com/SurendraKumar17/k8s-observability-platform/blob/main/runbooks/slo-breach.md"
+            runbook_url: "https://github.com/SurendraKumar17/gitops-sre-platform/blob/main/runbooks/slo-breach.md"
 
         - alert: SLOSearchSlowBurn
           expr: |
@@ -204,7 +204,7 @@ spec:
           annotations:
             summary: "Search service slow burn rate (3×)"
             description: "Error rate {{ $value | humanizePercentage }} — exhausting monthly budget in ~10 days."
-            runbook_url: "https://github.com/SurendraKumar17/k8s-observability-platform/blob/main/runbooks/slo-breach.md"
+            runbook_url: "https://github.com/SurendraKumar17/gitops-sre-platform/blob/main/runbooks/slo-breach.md"
 
         - alert: SLOSearchLatencyBurn
           expr: slo:search_latency_500ms:ratio_rate5m < 0.95
@@ -216,7 +216,7 @@ spec:
           annotations:
             summary: "Search latency SLO burning"
             description: "Only {{ $value | humanizePercentage }} of requests complete < 500ms (target: 95%)."
-            runbook_url: "https://github.com/SurendraKumar17/k8s-observability-platform/blob/main/runbooks/slo-breach.md"
+            runbook_url: "https://github.com/SurendraKumar17/gitops-sre-platform/blob/main/runbooks/slo-breach.md"
 
     # ── Frontend Service ───────────────────────────────────────
     - name: slo.burn_rate.frontend
@@ -235,7 +235,7 @@ spec:
           annotations:
             summary: "Frontend fast burn rate (14.4×)"
             description: "Error rate {{ $value | humanizePercentage }} — exhausting monthly budget in ~2 days."
-            runbook_url: "https://github.com/SurendraKumar17/k8s-observability-platform/blob/main/runbooks/slo-breach.md"
+            runbook_url: "https://github.com/SurendraKumar17/gitops-sre-platform/blob/main/runbooks/slo-breach.md"
 
         - alert: SLOFrontendMediumBurn
           expr: |
@@ -251,7 +251,7 @@ spec:
           annotations:
             summary: "Frontend medium burn rate (6×)"
             description: "Error rate {{ $value | humanizePercentage }} — exhausting monthly budget in ~5 days."
-            runbook_url: "https://github.com/SurendraKumar17/k8s-observability-platform/blob/main/runbooks/slo-breach.md"
+            runbook_url: "https://github.com/SurendraKumar17/gitops-sre-platform/blob/main/runbooks/slo-breach.md"
 
         - alert: SLOFrontendSlowBurn
           expr: |
@@ -267,7 +267,7 @@ spec:
           annotations:
             summary: "Frontend slow burn rate (3×)"
             description: "Error rate {{ $value | humanizePercentage }} — exhausting monthly budget in ~10 days."
-            runbook_url: "https://github.com/SurendraKumar17/k8s-observability-platform/blob/main/runbooks/slo-breach.md"
+            runbook_url: "https://github.com/SurendraKumar17/gitops-sre-platform/blob/main/runbooks/slo-breach.md"
 
         - alert: SLOFrontendLatencyBurn
           expr: slo:frontend_latency_500ms:ratio_rate5m < 0.95
@@ -279,4 +279,4 @@ spec:
           annotations:
             summary: "Frontend latency SLO burning"
             description: "Only {{ $value | humanizePercentage }} of requests complete < 500ms (target: 95%)."
-            runbook_url: "https://github.com/SurendraKumar17/k8s-observability-platform/blob/main/runbooks/slo-breach.md"
+            runbook_url: "https://github.com/SurendraKumar17/gitops-sre-platform/blob/main/runbooks/slo-breach.md"
