@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: infra-dashboard
+  namespace: observability
+  labels:
+    grafana_dashboard: "1"
+data:
+  infra-dashboard.json: |
+{{ .Files.Get "dashboards/infrastructure/infra-dashboard.json" | indent 4 }}

@@ -7,4 +7,181 @@ metadata:
     grafana_dashboard: "1"
 data:
   red-dashboard.json: |
-{{ .Files.Get "dashboards/red/red-dashboard.json" | indent 4 }}
+    {
+      "title": "Booking Platform – RED Metrics",
+      "uid": "booking-red",
+      "tags": ["booking", "red", "services"],
+      "schemaVersion": 38,
+      "refresh": "15s",
+      "time": { "from": "now-30m", "to": "now" },
+      "templating": {
+        "list": [
+          {
+            "name": "service",
+            "type": "custom",
+            "label": "Service",
+            "options": [
+              { "text": "All", "value": "book|frontend|auth|search|payment|notification", "selected": true },
+              { "text": "book", "value": "book" },
+              { "text": "frontend", "value": "frontend" },
+              { "text": "auth", "value": "auth" },
+              { "text": "search", "value": "search" },
+              { "text": "payment", "value": "payment" },
+              { "text": "notification", "value": "notification" }
+            ],
+            "current": { "value": "book|frontend|auth|search|payment|notification" }
+          }
+        ]
+      },
+      "panels": [
+        {
+          "id": 1,
+          "title": "Request Rate (RPS) – All Services",
+          "type": "timeseries",
+          "gridPos": { "x": 0, "y": 0, "w": 24, "h": 8 },
+          "targets": [
+            {
+              "expr": "sum(rate(http_server_requests_seconds_count{job=\"book\"}[5m]))",
+              "legendFormat": "book"
+            },
+            {
+              "expr": "sum(rate(http_request_duration_seconds_count{job=\"frontend\"}[5m]))",
+              "legendFormat": "frontend"
+            },
+            {
+              "expr": "sum(rate(http_request_duration_seconds_count{job=\"auth\"}[5m]))",
+              "legendFormat": "auth"
+            },
+            {
+              "expr": "sum(rate(http_request_duration_seconds_count{job=\"search\"}[5m]))",
+              "legendFormat": "search"
+            },
+            {
+              "expr": "sum(rate(http_request_duration_seconds_count{job=\"payment\"}[5m]))",
+              "legendFormat": "payment"
+            },
+            {
+              "expr": "sum(rate(http_request_duration_seconds_count{job=\"notification\"}[5m]))",
+              "legendFormat": "notification"
+            }
+          ],
+          "fieldConfig": { "defaults": { "unit": "reqps" } }
+        },
+        {
+          "id": 2,
+          "title": "Error Rate – Book (Java)",
+          "type": "timeseries",
+          "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+          "targets": [
+            {
+              "expr": "sum(rate(http_server_requests_seconds_count{job=\"book\", status=~\"5..\"}[5m])) by (uri) / sum(rate(http_server_requests_seconds_count{job=\"book\"}[5m])) by (uri)",
+              "legendFormat": "{{ uri }}"
+            }
+          ],
+          "fieldConfig": { "defaults": { "unit": "percentunit", "thresholds": {
+            "steps": [{ "value": 0, "color": "green" }, { "value": 0.01, "color": "yellow" }, { "value": 0.05, "color": "red" }]
+          }}}
+        },
+        {
+          "id": 3,
+          "title": "Error Rate – Node.js Services",
+          "type": "timeseries",
+          "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+          "targets": [
+            {
+              "expr": "sum(rate(http_request_duration_seconds_count{job=~\"frontend|auth|search|payment|notification\", status_code=~\"5..\"}[5m])) by (job) / sum(rate(http_request_duration_seconds_count{job=~\"frontend|auth|search|payment|notification\"}[5m])) by (job)",
+              "legendFormat": "{{ job }}"
+            }
+          ],
+          "fieldConfig": { "defaults": { "unit": "percentunit" } }
+        },
+        {
+          "id": 4,
+          "title": "Latency p50 / p95 / p99 – Book (Spring Boot)",
+          "type": "timeseries",
+          "gridPos": { "x": 0, "y": 16, "w": 12, "h": 8 },
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.50, sum(rate(http_server_requests_seconds_bucket{job=\"book\"}[5m])) by (le))",
+              "legendFormat": "p50"
+            },
+            {
+              "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{job=\"book\"}[5m])) by (le))",
+              "legendFormat": "p95"
+            },
+            {
+              "expr": "histogram_quantile(0.99, sum(rate(http_server_requests_seconds_bucket{job=\"book\"}[5m])) by (le))",
+              "legendFormat": "p99"
+            }
+          ],
+          "fieldConfig": { "defaults": { "unit": "s" } }
+        },
+        {
+          "id": 5,
+          "title": "Latency p50 / p95 / p99 – Node.js Services",
+          "type": "timeseries",
+          "gridPos": { "x": 12, "y": 16, "w": 12, "h": 8 },
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{job=~\"frontend|auth|search|payment|notification\"}[5m])) by (le, job))",
+              "legendFormat": "p99 {{ job }}"
+            },
+            {
+              "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=~\"frontend|auth|search|payment|notification\"}[5m])) by (le, job))",
+              "legendFormat": "p95 {{ job }}"
+            }
+          ],
+          "fieldConfig": { "defaults": { "unit": "s" } }
+        },
+        {
+          "id": 6,
+          "title": "JVM Heap – Book",
+          "type": "timeseries",
+          "gridPos": { "x": 0, "y": 24, "w": 8, "h": 6 },
+          "targets": [
+            {
+              "expr": "jvm_memory_used_bytes{job=\"book\", area=\"heap\"}",
+              "legendFormat": "used {{ pod }}"
+            },
+            {
+              "expr": "jvm_memory_max_bytes{job=\"book\", area=\"heap\"}",
+              "legendFormat": "max {{ pod }}"
+            }
+          ],
+          "fieldConfig": { "defaults": { "unit": "bytes" } }
+        },
+        {
+          "id": 7,
+          "title": "HikariCP Pool – Book",
+          "type": "timeseries",
+          "gridPos": { "x": 8, "y": 24, "w": 8, "h": 6 },
+          "targets": [
+            {
+              "expr": "hikaricp_connections_active{job=\"book\"}",
+              "legendFormat": "active {{ pod }}"
+            },
+            {
+              "expr": "hikaricp_connections_idle{job=\"book\"}",
+              "legendFormat": "idle {{ pod }}"
+            },
+            {
+              "expr": "hikaricp_connections_pending{job=\"book\"}",
+              "legendFormat": "pending {{ pod }}"
+            }
+          ]
+        },
+        {
+          "id": 8,
+          "title": "GC Pause – Book",
+          "type": "timeseries",
+          "gridPos": { "x": 16, "y": 24, "w": 8, "h": 6 },
+          "targets": [
+            {
+              "expr": "rate(jvm_gc_pause_seconds_sum{job=\"book\"}[5m])",
+              "legendFormat": "{{ action }} {{ cause }}"
+            }
+          ],
+          "fieldConfig": { "defaults": { "unit": "s" } }
+        }
+      ]
+    }

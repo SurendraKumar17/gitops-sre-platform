@@ -7,4 +7,188 @@ metadata:
     grafana_dashboard: "1"
 data:
   slo-dashboard.json: |
-{{ .Files.Get "dashboards/slo/slo-dashboard.json" | indent 4 }}
+    {
+      "title": "Booking Platform – SLO Dashboard",
+      "uid": "booking-slo",
+      "tags": ["booking", "slo", "reliability"],
+      "schemaVersion": 38,
+      "refresh": "1m",
+      "time": { "from": "now-24h", "to": "now" },
+      "panels": [
+        {
+          "id": 1,
+          "title": "Book Availability SLO (target: 99.9%)",
+          "type": "gauge",
+          "gridPos": { "x": 0, "y": 0, "w": 4, "h": 6 },
+          "targets": [
+            {
+              "expr": "slo:book_availability:ratio_rate1h * 100",
+              "legendFormat": "Availability %"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "min": 99,
+              "max": 100,
+              "thresholds": { "steps": [
+                { "value": 0, "color": "red" },
+                { "value": 99.5, "color": "yellow" },
+                { "value": 99.9, "color": "green" }
+              ]}
+            }
+          }
+        },
+        {
+          "id": 2,
+          "title": "Frontend Availability SLO (target: 99.9%)",
+          "type": "gauge",
+          "gridPos": { "x": 4, "y": 0, "w": 4, "h": 6 },
+          "targets": [
+            {
+              "expr": "slo:frontend_availability:ratio_rate1h * 100",
+              "legendFormat": "Availability %"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent", "min": 99, "max": 100,
+              "thresholds": { "steps": [
+                { "value": 0, "color": "red" },
+                { "value": 99.5, "color": "yellow" },
+                { "value": 99.9, "color": "green" }
+              ]}
+            }
+          }
+        },
+        {
+          "id": 3,
+          "title": "Auth Availability SLO",
+          "type": "gauge",
+          "gridPos": { "x": 8, "y": 0, "w": 4, "h": 6 },
+          "targets": [
+            { "expr": "slo:auth_availability:ratio_rate5m * 100", "legendFormat": "Availability %" }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent", "min": 99, "max": 100,
+              "thresholds": { "steps": [
+                { "value": 0, "color": "red" }, { "value": 99.5, "color": "yellow" }, { "value": 99.9, "color": "green" }
+              ]}
+            }
+          }
+        },
+        {
+          "id": 4,
+          "title": "Search Availability SLO",
+          "type": "gauge",
+          "gridPos": { "x": 12, "y": 0, "w": 4, "h": 6 },
+          "targets": [
+            { "expr": "slo:search_availability:ratio_rate5m * 100", "legendFormat": "Availability %" }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent", "min": 99, "max": 100,
+              "thresholds": { "steps": [
+                { "value": 0, "color": "red" }, { "value": 99.5, "color": "yellow" }, { "value": 99.9, "color": "green" }
+              ]}
+            }
+          }
+        },
+        {
+          "id": 9,
+          "title": "Payment Availability SLO",
+          "type": "gauge",
+          "gridPos": { "x": 16, "y": 0, "w": 4, "h": 6 },
+          "targets": [
+            { "expr": "slo:payment_availability:ratio_rate5m * 100", "legendFormat": "Availability %" }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent", "min": 99, "max": 100,
+              "thresholds": { "steps": [
+                { "value": 0, "color": "red" }, { "value": 99.5, "color": "yellow" }, { "value": 99.9, "color": "green" }
+              ]}
+            }
+          }
+        },
+        {
+          "id": 10,
+          "title": "Notification Availability SLO",
+          "type": "gauge",
+          "gridPos": { "x": 20, "y": 0, "w": 4, "h": 6 },
+          "targets": [
+            { "expr": "slo:notification_availability:ratio_rate5m * 100", "legendFormat": "Availability %" }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent", "min": 99, "max": 100,
+              "thresholds": { "steps": [
+                { "value": 0, "color": "red" }, { "value": 99.5, "color": "yellow" }, { "value": 99.9, "color": "green" }
+              ]}
+            }
+          }
+        },
+        {
+          "id": 5,
+          "title": "Error Budget Remaining – Book (30d rolling)",
+          "type": "stat",
+          "gridPos": { "x": 0, "y": 6, "w": 12, "h": 5 },
+          "targets": [
+            {
+              "expr": "100 * (1 - ((1 - slo:book_availability:ratio_rate6h) / (1 - 0.999)))",
+              "legendFormat": "Error Budget %"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "thresholds": { "steps": [
+                { "value": 0, "color": "red" },
+                { "value": 25, "color": "yellow" },
+                { "value": 50, "color": "green" }
+              ]}
+            }
+          }
+        },
+        {
+          "id": 6,
+          "title": "Latency SLO – % Requests < 500ms",
+          "type": "timeseries",
+          "gridPos": { "x": 0, "y": 11, "w": 24, "h": 8 },
+          "targets": [
+            {
+              "expr": "slo:book_latency_500ms:ratio_rate5m * 100",
+              "legendFormat": "book"
+            },
+            {
+              "expr": "slo:frontend_latency_500ms:ratio_rate5m * 100",
+              "legendFormat": "frontend"
+            },
+            {
+              "expr": "slo:auth_latency_500ms:ratio_rate5m * 100",
+              "legendFormat": "auth"
+            },
+            {
+              "expr": "slo:search_latency_500ms:ratio_rate5m * 100",
+              "legendFormat": "search"
+            },
+            {
+              "expr": "slo:payment_latency_500ms:ratio_rate5m * 100",
+              "legendFormat": "payment"
+            },
+            {
+              "expr": "slo:notification_latency_500ms:ratio_rate5m * 100",
+              "legendFormat": "notification"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": { "unit": "percent", "min": 90, "max": 100 },
+            "overrides": [
+              { "matcher": { "id": "byName", "options": "SLO Target" },
+                "properties": [{ "id": "custom.lineStyle", "value": { "dash": [10, 10] }}] }
+            ]
+          }
+        }
+      ]
+    }

@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: slo-dashboard
+  namespace: observability
+  labels:
+    grafana_dashboard: "1"
+data:
+  slo-dashboard.json: |
+{{ .Files.Get "dashboards/slo/slo-dashboard.json" | indent 4 }}
